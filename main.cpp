@@ -1,4 +1,6 @@
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 #include <fmt/format.h>
 
@@ -9,11 +11,11 @@
 
 using namespace V4L2;
 
-Image imageFromFrame(const Frame& f)
+Image<RGBAColor> imageFromFrame(const Frame& f)
 {
-  Image img(f.width, f.height);
+  Image<RGBAColor> img(f.width, f.height);
 
-  RGBAColor* imgPtr = (RGBAColor*)img.data();
+  auto imgPtr = img.pixel();
   
   for (int y=0; y < f.height; y++)
   {
@@ -42,13 +44,15 @@ int main(int argc, char *argv[])
     Camera cam1("/dev/video2", 2);
     std::cout << "Cam 1 ok!\n";
 
-    for (int i=0; i < 1; ++i)
+    while (true)
     {
       auto frame0 = cam0.getFrame();
       auto frame1 = cam1.getFrame();
 
-      ImageIO::SaveToFile(fmt::format("cam0_frame{}.jpg", i), imageFromFrame(frame0));
-      ImageIO::SaveToFile(fmt::format("cam1_frame{}.jpg", i), imageFromFrame(frame1));
+      ImageIO::SaveToFile("cam0.jpg", imageFromFrame(frame0));
+      ImageIO::SaveToFile("cam1.jpg", imageFromFrame(frame1));
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     std::cout << "Done\n";

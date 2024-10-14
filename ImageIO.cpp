@@ -111,7 +111,7 @@ static ImageFormat detectFormat(std::filesystem::path imagePath)
   }
 }
 
-void ImageIO::readJpeg(std::istream& inputStream, Image& img, ImageLoadSettings settings)
+void ImageIO::readJpeg(std::istream& inputStream, Image<RGBAColor>& img, ImageLoadSettings settings)
 {
   std::vector<char> compressedImage;
   compressedImage.assign(std::istreambuf_iterator<char>(inputStream), std::istreambuf_iterator<char>());
@@ -120,7 +120,6 @@ void ImageIO::readJpeg(std::istream& inputStream, Image& img, ImageLoadSettings 
   tjhandle _jpegDecompressor = tjInitDecompress();
   // const cast to deal with C api
   tjDecompressHeader2(_jpegDecompressor, (uint8_t*)compressedImage.data(), compressedImage.size(), &img.width_, &img.height_, &jpegSubsamp);
-  img.format_ = PixelFormat::RGBA;
   img.data_.resize(img.width_ * img.height_ * 4);
   tjDecompress2(_jpegDecompressor, (uint8_t*)compressedImage.data(), compressedImage.size(), img.data_.data(), img.width_, 0 /*pitch*/, img.height_, TJPF_RGBA, TJFLAG_FASTDCT);
   tjDestroy(_jpegDecompressor);
@@ -132,7 +131,7 @@ void ImageIO::readJpeg(std::istream& inputStream, Image& img, ImageLoadSettings 
   }
 }
 
-void ImageIO::writeJpeg(std::ostream& outputStream, const Image& img, ImageSaveSettings settings)
+void ImageIO::writeJpeg(std::ostream& outputStream, const Image<RGBAColor>& img, ImageSaveSettings settings)
 {
   long unsigned int jpegSize = 0;
   uint8_t *compressedImage = NULL; //!< Memory is allocated by tjCompress2 if _jpegSize == 0
@@ -158,7 +157,7 @@ void ImageIO::writeJpeg(std::ostream& outputStream, const Image& img, ImageSaveS
   tjFree(compressedImage);
 }
 
-void ImageIO::readPng(std::istream& inputStream, Image& img, ImageLoadSettings /*settings*/)
+void ImageIO::readPng(std::istream& inputStream, Image<RGBAColor>& img, ImageLoadSettings /*settings*/)
 {
   PngReadContext ctx;
   if (!ctx.ok())
@@ -217,7 +216,7 @@ void ImageIO::readPng(std::istream& inputStream, Image& img, ImageLoadSettings /
   }
 }
 
-void ImageIO::writePng(std::ostream& outputStream, const Image& img, ImageSaveSettings /*settings*/)
+void ImageIO::writePng(std::ostream& outputStream, const Image<RGBAColor>& img, ImageSaveSettings /*settings*/)
 {
   PngWriteContext ctx;
   if (!ctx.ok())
@@ -246,7 +245,7 @@ void ImageIO::writePng(std::ostream& outputStream, const Image& img, ImageSaveSe
   png_write_png(ctx.structp, ctx.infop, PNG_TRANSFORM_IDENTITY, NULL);
 }
 
-Image ImageIO::LoadFromStream(std::istream& stream, ImageLoadSettings settings)
+Image<RGBAColor> ImageIO::LoadFromStream(std::istream& stream, ImageLoadSettings settings)
 {
   // Detect the file type
   uint8_t header[8];
@@ -257,7 +256,7 @@ Image ImageIO::LoadFromStream(std::istream& stream, ImageLoadSettings settings)
   stream.clear();
   stream.seekg(0, std::ios::beg);
 
-  Image img;
+  Image<RGBAColor> img;
 
   if (format == ImageFormat::JPEG)
   {
@@ -275,19 +274,19 @@ Image ImageIO::LoadFromStream(std::istream& stream, ImageLoadSettings settings)
   return img;
 }
 
-Image ImageIO::LoadFromBuffer(const std::string& str, ImageLoadSettings settings)
+Image<RGBAColor> ImageIO::LoadFromBuffer(const std::string& str, ImageLoadSettings settings)
 {
   std::istringstream inputStream(str);
   return LoadFromStream(inputStream, settings);
 }
 
-Image ImageIO::LoadFromFile(std::filesystem::path imagePath, ImageLoadSettings settings)
+Image<RGBAColor> ImageIO::LoadFromFile(std::filesystem::path imagePath, ImageLoadSettings settings)
 {
   std::ifstream inputStream(imagePath, std::ios::binary);
   return LoadFromStream(inputStream, settings);
 }
 
-void ImageIO::SaveToStream(const Image& image, std::ostream& stream, ImageSaveSettings settings)
+void ImageIO::SaveToStream(const Image<RGBAColor>& image, std::ostream& stream, ImageSaveSettings settings)
 {
   // At this point we have no context for Auto, so
   // just pick PNG
@@ -302,22 +301,13 @@ void ImageIO::SaveToStream(const Image& image, std::ostream& stream, ImageSaveSe
     throw std::runtime_error("Cannot save zero-dimension image!");
   }
 
-  // Convert to RGB if necessary
-  Image rgba;
-  const Image* imgToSave = &image;
-  if (image.format() != PixelFormat::RGBA)
-  {
-    image.toRGBA(rgba);
-    imgToSave = &rgba;
-  }
-
   if (settings.saveFormat == ImageFormat::JPEG)
   {
-    writeJpeg(stream, *imgToSave, settings);
+    writeJpeg(stream, image, settings);
   }
   else if (settings.saveFormat == ImageFormat::PNG)
   {
-    writePng(stream, *imgToSave, settings);
+    writePng(stream, image, settings);
   }
   else
   {
@@ -325,14 +315,14 @@ void ImageIO::SaveToStream(const Image& image, std::ostream& stream, ImageSaveSe
   }
 }
 
-void ImageIO::SaveToBuffer(const Image& image, std::string& str, ImageSaveSettings settings)
+void ImageIO::SaveToBuffer(const Image<RGBAColor>& image, std::string& str, ImageSaveSettings settings)
 {
   std::ostringstream outputStream;
   SaveToStream(image, outputStream, settings);
   str = outputStream.str();
 }
 
-void ImageIO::SaveToFile(std::filesystem::path imagePath, const Image& image, ImageSaveSettings settings)
+void ImageIO::SaveToFile(std::filesystem::path imagePath, const Image<RGBAColor>& image, ImageSaveSettings settings)
 {
   if (settings.saveFormat == ImageFormat::Auto)
   {

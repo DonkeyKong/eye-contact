@@ -14,6 +14,22 @@ static T remap(T value, T inMin, T inMax, T outMin, T outMax)
   return std::clamp((T)std::clamp(out, (double)outMin, (double)outMax), outMin, outMax);
 }
 
+RGBAColor::RGBAColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : R(r), G(g), B(b), A(a)
+{
+}
+
+RGBAColor::RGBAColor(const RGBColor& color) : R(color.R), G(color.G), B(color.B), A(255)
+{
+}
+
+RGBColor::RGBColor(const RGBAColor& color) : R(color.R), G(color.G), B(color.B)
+{
+}
+
+RGBColor::RGBColor(uint8_t r, uint8_t g, uint8_t b) : R(r), G(g), B(b)
+{
+}
+
 RGBAColor HSVColor::toRGB()
 {
   float r, g, b;
@@ -144,6 +160,11 @@ void RGBAColor::setFromYuv(int y, int u, int v)
 {
   yuvToRgb(y, u, v, R, G, B);
   A = 255; // YUV colors are all opaque
+}
+
+void RGBColor::setFromYuv(int y, int u, int v)
+{
+  yuvToRgb(y, u, v, R, G, B);
 }
 
 void rgbToXyz(const RGBAColor &rgb, XYZColor &xyz)

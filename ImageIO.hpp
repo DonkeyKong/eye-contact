@@ -27,15 +27,15 @@ struct ImageIO
 {
 public:
   ImageIO() = delete;
-  static Image LoadFromStream(std::istream&, ImageLoadSettings settings = {});
-  static Image LoadFromBuffer(const std::string&, ImageLoadSettings settings = {});
-  static Image LoadFromFile(std::filesystem::path, ImageLoadSettings settings = {});
-  static void SaveToStream(const Image&, std::ostream&, ImageSaveSettings settings = {});
-  static void SaveToBuffer(const Image&, std::string&, ImageSaveSettings settings = {});
-  static void SaveToFile(std::filesystem::path, const Image&, ImageSaveSettings settings = {});
+  static Image<RGBAColor> LoadFromStream(std::istream&, ImageLoadSettings settings = {});
+  static Image<RGBAColor> LoadFromBuffer(const std::string&, ImageLoadSettings settings = {});
+  static Image<RGBAColor> LoadFromFile(std::filesystem::path, ImageLoadSettings settings = {});
+  static void SaveToStream(const Image<RGBAColor>&, std::ostream&, ImageSaveSettings settings = {});
+  static void SaveToBuffer(const Image<RGBAColor>&, std::string&, ImageSaveSettings settings = {});
+  static void SaveToFile(std::filesystem::path, const Image<RGBAColor>&, ImageSaveSettings settings = {});
 private: 
-  static void readJpeg(std::istream&, Image&, ImageLoadSettings);
-  static void writeJpeg(std::ostream&, const Image&, ImageSaveSettings);
-  static void readPng(std::istream&, Image&, ImageLoadSettings);
-  static void writePng(std::ostream&, const Image&, ImageSaveSettings);
+  static void readJpeg(std::istream&, Image<RGBAColor>&, ImageLoadSettings);
+  static void writeJpeg(std::ostream&, const Image<RGBAColor>&, ImageSaveSettings);
+  static void readPng(std::istream&, Image<RGBAColor>&, ImageLoadSettings);
+  static void writePng(std::ostream&, const Image<RGBAColor>&, ImageSaveSettings);
 };

@@ -5,6 +5,7 @@
 #include <vector>
 
 struct RGBAColor;
+struct RGBColor;
 struct HSVColor;
 struct LabColor;
 
@@ -17,6 +18,19 @@ struct HSVColor
   float A = 1.0f;
 
   RGBAColor toRGB();
+};
+
+struct RGBColor
+{
+  uint8_t R = 0;
+  uint8_t G = 0;
+  uint8_t B = 0;
+
+  void setFromYuv(int y, int u, int v);
+
+  RGBColor() {}
+  RGBColor(const RGBAColor& color);
+  RGBColor(uint8_t r, uint8_t g, uint8_t b);
 };
 
 struct RGBAColor
@@ -33,6 +47,10 @@ struct RGBAColor
   uint8_t getGrayValue() const;
 
   void setFromYuv(int y, int u, int v);
+
+  RGBAColor() {}
+  RGBAColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+  RGBAColor(const RGBColor& color);
 };
 
 struct XYZColor

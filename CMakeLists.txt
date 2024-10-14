@@ -10,7 +10,6 @@ add_executable( ${PROJECT_NAME}
   main.cpp
   V4LCamera.cpp
   Color.cpp
-  Image.cpp
   ImageIO.cpp
 )
 
