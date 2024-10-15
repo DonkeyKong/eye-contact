@@ -11,9 +11,10 @@
 
 using namespace V4L2;
 
-Image<RGBAColor> imageFromFrame(const Frame& f)
+template <typename Color>
+Image<Color> imageFromFrame(const Frame& f)
 {
-  Image<RGBAColor> img(f.width, f.height);
+  Image<Color> img(f.width, f.height);
 
   auto imgPtr = img.pixel();
   
@@ -49,8 +50,8 @@ int main(int argc, char *argv[])
       auto frame0 = cam0.getFrame();
       auto frame1 = cam1.getFrame();
 
-      ImageIO::SaveToFile("cam0.jpg", imageFromFrame(frame0));
-      ImageIO::SaveToFile("cam1.jpg", imageFromFrame(frame1));
+      ImageIO::SaveToFile("cam0.jpg", imageFromFrame<RGBColor>(frame0));
+      ImageIO::SaveToFile("cam1.jpg", imageFromFrame<RGBColor>(frame1));
 
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }

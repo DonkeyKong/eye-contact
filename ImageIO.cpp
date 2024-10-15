@@ -7,12 +7,12 @@
 #include "ImageIO.hpp"
 
 #include <fmt/format.h>
+
 #include <png.h>
 #include <turbojpeg.h>
 #include <TinyEXIF.h>
 
-#include <fstream>
-#include <sstream>
+
 
 struct PngReadContext
 {
@@ -68,7 +68,7 @@ struct PngWriteContext
   }
 };
 
-static ImageFormat detectFormat(uint8_t header[8])
+ImageFormat ImageIO::detectFormat(uint8_t header[8])
 {
   if (header[0] == 0xFF && 
       header[1] == 0xD8)
@@ -92,7 +92,7 @@ static ImageFormat detectFormat(uint8_t header[8])
   }
 }
 
-static ImageFormat detectFormat(std::filesystem::path imagePath)
+ImageFormat ImageIO::detectFormat(std::filesystem::path imagePath)
 {
   std::string ext = imagePath.extension();
   std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
@@ -111,7 +111,7 @@ static ImageFormat detectFormat(std::filesystem::path imagePath)
   }
 }
 
-void ImageIO::readJpeg(std::istream& inputStream, Image<RGBAColor>& img, ImageLoadSettings settings)
+void ImageIO::readJpeg(std::istream& inputStream, Image<RGBColor>& img, ImageLoadSettings settings)
 {
   std::vector<char> compressedImage;
   compressedImage.assign(std::istreambuf_iterator<char>(inputStream), std::istreambuf_iterator<char>());
@@ -120,8 +120,8 @@ void ImageIO::readJpeg(std::istream& inputStream, Image<RGBAColor>& img, ImageLo
   tjhandle _jpegDecompressor = tjInitDecompress();
   // const cast to deal with C api
   tjDecompressHeader2(_jpegDecompressor, (uint8_t*)compressedImage.data(), compressedImage.size(), &img.width_, &img.height_, &jpegSubsamp);
-  img.data_.resize(img.width_ * img.height_ * 4);
-  tjDecompress2(_jpegDecompressor, (uint8_t*)compressedImage.data(), compressedImage.size(), img.data_.data(), img.width_, 0 /*pitch*/, img.height_, TJPF_RGBA, TJFLAG_FASTDCT);
+  img.data_.resize(img.width_ * img.height_ * sizeof(RGBColor));
+  tjDecompress2(_jpegDecompressor, (uint8_t*)compressedImage.data(), compressedImage.size(), img.data_.data(), img.width_, 0 /*pitch*/, img.height_, TJPF_RGB, TJFLAG_FASTDCT);
   tjDestroy(_jpegDecompressor);
 
   if (settings.autoRotate)
@@ -131,14 +131,14 @@ void ImageIO::readJpeg(std::istream& inputStream, Image<RGBAColor>& img, ImageLo
   }
 }
 
-void ImageIO::writeJpeg(std::ostream& outputStream, const Image<RGBAColor>& img, ImageSaveSettings settings)
+void ImageIO::writeJpeg(std::ostream& outputStream, const Image<RGBColor>& img, ImageSaveSettings settings)
 {
   long unsigned int jpegSize = 0;
   uint8_t *compressedImage = NULL; //!< Memory is allocated by tjCompress2 if _jpegSize == 0
 
   tjhandle jpegCompressor = tjInitCompress();
 
-  tjCompress2(jpegCompressor, img.data(), img.width(), 0, img.height(), TJPF_RGBA,
+  tjCompress2(jpegCompressor, img.data(), img.width(), 0, img.height(), TJPF_RGB,
               &compressedImage, &jpegSize, TJSAMP_444, settings.jpegQuality,
               TJFLAG_FASTDCT);
 
@@ -243,92 +243,4 @@ void ImageIO::writePng(std::ostream& outputStream, const Image<RGBAColor>& img, 
     stream.write((char*)data, length);
   }, NULL);
   png_write_png(ctx.structp, ctx.infop, PNG_TRANSFORM_IDENTITY, NULL);
-}
-
-Image<RGBAColor> ImageIO::LoadFromStream(std::istream& stream, ImageLoadSettings settings)
-{
-  // Detect the file type
-  uint8_t header[8];
-  stream.read((char*)header, 8);
-  auto format = detectFormat(header);
-
-  // Rewind the input stream...
-  stream.clear();
-  stream.seekg(0, std::ios::beg);
-
-  Image<RGBAColor> img;
-
-  if (format == ImageFormat::JPEG)
-  {
-    readJpeg(stream, img, settings);
-  }
-  else if (format == ImageFormat::PNG)
-  {
-    readPng(stream, img, settings);
-  }
-  else
-  {
-    throw std::runtime_error("Unsupported image data!");
-  }
-
-  return img;
-}
-
-Image<RGBAColor> ImageIO::LoadFromBuffer(const std::string& str, ImageLoadSettings settings)
-{
-  std::istringstream inputStream(str);
-  return LoadFromStream(inputStream, settings);
-}
-
-Image<RGBAColor> ImageIO::LoadFromFile(std::filesystem::path imagePath, ImageLoadSettings settings)
-{
-  std::ifstream inputStream(imagePath, std::ios::binary);
-  return LoadFromStream(inputStream, settings);
-}
-
-void ImageIO::SaveToStream(const Image<RGBAColor>& image, std::ostream& stream, ImageSaveSettings settings)
-{
-  // At this point we have no context for Auto, so
-  // just pick PNG
-  if (settings.saveFormat == ImageFormat::Auto)
-  {
-    settings.saveFormat = ImageFormat::PNG;
-  }
-
-  // Verify the image is valid
-  if (image.width() < 1 || image.height() < 1)
-  {
-    throw std::runtime_error("Cannot save zero-dimension image!");
-  }
-
-  if (settings.saveFormat == ImageFormat::JPEG)
-  {
-    writeJpeg(stream, image, settings);
-  }
-  else if (settings.saveFormat == ImageFormat::PNG)
-  {
-    writePng(stream, image, settings);
-  }
-  else
-  {
-    throw std::runtime_error("Unsupported image data!");
-  }
-}
-
-void ImageIO::SaveToBuffer(const Image<RGBAColor>& image, std::string& str, ImageSaveSettings settings)
-{
-  std::ostringstream outputStream;
-  SaveToStream(image, outputStream, settings);
-  str = outputStream.str();
-}
-
-void ImageIO::SaveToFile(std::filesystem::path imagePath, const Image<RGBAColor>& image, ImageSaveSettings settings)
-{
-  if (settings.saveFormat == ImageFormat::Auto)
-  {
-    settings.saveFormat = detectFormat(imagePath);
-  }
-  std::ofstream outputStream(imagePath, std::ios::binary | std::ios::trunc);
-  SaveToStream(image, outputStream, settings);
-  outputStream.close();
 }

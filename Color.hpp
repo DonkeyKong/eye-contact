@@ -4,60 +4,66 @@
 #include <unordered_map>
 #include <vector>
 
-struct RGBAColor;
 struct RGBColor;
+struct RGBAColor;
+struct Grayscale;
 struct HSVColor;
 struct LabColor;
 
 #pragma pack(push, 1)
-struct HSVColor
-{
-  float H = 0.0f;
-  float S = 0.0f;
-  float V = 0.0f;
-  float A = 1.0f;
-
-  RGBAColor toRGB();
-};
-
 struct RGBColor
 {
   uint8_t R = 0;
   uint8_t G = 0;
   uint8_t B = 0;
 
-  void setFromYuv(int y, int u, int v);
-
-  RGBColor() {}
-  RGBColor(const RGBAColor& color);
+  RGBColor() = default;
+  RGBColor(const RGBColor& color) = default;
   RGBColor(uint8_t r, uint8_t g, uint8_t b);
+  RGBColor(const HSVColor& color);
+  RGBColor(const Grayscale& color);
+  RGBColor(const LabColor& color);
+
+  void setFromYuv(int y, int u, int v);
 };
 
-struct RGBAColor
+struct RGBAColor : public RGBColor
 {
-  uint8_t R = 0;
-  uint8_t G = 0;
-  uint8_t B = 0;
   uint8_t A = 255;
 
-  HSVColor toHSV() const;
-  LabColor toLab() const;
-  uint8_t getBrightestChannel() const;
-  uint8_t getDarkestChannel() const;
-  uint8_t getGrayValue() const;
-
-  void setFromYuv(int y, int u, int v);
-
-  RGBAColor() {}
+  RGBAColor() = default;
+  RGBAColor(const RGBAColor& color) = default;
   RGBAColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
   RGBAColor(const RGBColor& color);
+  RGBAColor(const HSVColor& color);
+  RGBAColor(const Grayscale& color);
+  RGBAColor(const LabColor& color);
 };
 
-struct XYZColor
+struct Grayscale
 {
-  float X = 0;
-  float Y = 0;
-  float Z = 0;
+  uint8_t I = 0;
+
+  Grayscale() = default;
+  Grayscale(const Grayscale& color) = default;
+  Grayscale(uint8_t i);
+  Grayscale(const RGBColor& color);
+  Grayscale(const LabColor& color);
+  Grayscale(const HSVColor& color);
+};
+
+struct HSVColor
+{
+  float H = 0.0f;
+  float S = 0.0f;
+  float V = 0.0f;
+
+  HSVColor() = default;
+  HSVColor(const HSVColor& color) = default;
+  HSVColor(float h, float s, float v);
+  HSVColor(const RGBColor& color);
+  HSVColor(const Grayscale& color);
+  HSVColor(const LabColor& color);
 };
 
 struct LabColor
@@ -66,7 +72,14 @@ struct LabColor
   float a = 0;
   float b = 0;
 
-  RGBAColor toRgba() const;
+  LabColor() = default;
+  LabColor(const LabColor& color) = default;
+  LabColor(float l, float a, float b);
+  LabColor(const RGBColor& color);
+  LabColor(const HSVColor& color);
+  LabColor(const Grayscale& color);
+
+  float deltaE(const LabColor& other) const;
 
   LabColor operator+ (const LabColor& c)  const
   {
@@ -97,9 +110,7 @@ struct LabColor
 
   friend LabColor operator*(float c, const LabColor& rhs)
   {
-      return {c*rhs.L, c*rhs.a, c*rhs.b};
+    return {c*rhs.L, c*rhs.a, c*rhs.b};
   }
-
-  float deltaE(const LabColor& other) const;
 };
 #pragma pack(pop)

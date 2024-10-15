@@ -363,22 +363,47 @@ public:
     }
 
     template <typename DestColor>
-    Image<DestColor> convert(bool preserveOriginal = true)
+    Image<DestColor> convert() const
     {
       std::vector<uint8_t> destData;
 
       // Image is the correct format already!
       // Just copy the data as-is
-      if (std::is_same_v<DestColor,Color>())
+      if constexpr(std::is_same_v<DestColor,Color>)
       {
-        if (preserveOriginal)
+        destData = data_;
+      }
+      else
+      {
+        size_t count = width_ * height_;
+        destData.resize(sizeof(DestColor) * count);
+        DestColor* destPtr = (DestColor*) destData.data();
+        auto srcPtr = pixel();
+        for (size_t i = 0; i < count; ++i)
         {
-          destData = data_;
+          destPtr[i] = srcPtr[i];
         }
-        else
-        {
-          destData = std::move(data_);
-        }
+      }
+
+      // Construct the destination image
+      Image<DestColor> dest;
+      dest.width_ = width_;
+      dest.height_ = height_;
+      dest.data_ = std::move(destData);
+
+      return dest;
+    }
+
+    template <typename DestColor>
+    Image<DestColor> moveConvert()
+    {
+      std::vector<uint8_t> destData;
+
+      // Image is the correct format already!
+      // Just copy the data as-is
+      if constexpr(std::is_same_v<DestColor,Color>)
+      {
+        destData = std::move(data_);
       }
       else
       {
@@ -399,18 +424,25 @@ public:
       dest.data_ = std::move(destData);
 
       // Delete the original data
-      if (!preserveOriginal)
-      {
-        width_ = 0;
-        height_ = 0;
-        data_.clear();
-      }
+      width_ = 0;
+      height_ = 0;
+      data_.clear();
 
       return dest;
     }
 
 private:
+    // ImageIO likes to access internals while deserializing
     friend class ImageIO;
+    
+    // We need to friend all the possible specializations
+    // because C++ is a mystery beyond understanding.
+    friend class Image<RGBAColor>;
+    friend class Image<RGBColor>;
+    friend class Image<Grayscale>;
+    friend class Image<HSVColor>;
+    friend class Image<LabColor>;
+
     int width_, height_;
     std::vector<uint8_t> data_;
 };
