@@ -20,4 +20,5 @@ target_link_libraries(${PROJECT_NAME} broadcom_host
                                       libpng
                                       magic_enum
                                       image_resampler
-                                      TinyEXIF)
+                                      TinyEXIF
+                                      opencv)

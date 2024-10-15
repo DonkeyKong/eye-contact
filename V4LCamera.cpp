@@ -67,7 +67,7 @@ Frame::~Frame()
   }
 }
 
-Camera::Camera(std::string devicePath_, size_t bufferCount) :  devicePath(std::move(devicePath_))
+Camera::Camera(std::string devicePath_, int requestedWidth, int requestedHeight, size_t bufferCount) :  devicePath(std::move(devicePath_))
 {
   // Open the device file
   fd = open(devicePath.c_str(), O_RDWR);
@@ -92,8 +92,8 @@ Camera::Camera(std::string devicePath_, size_t bufferCount) :  devicePath(std::m
   
   v4l2_format fmt = {};
   fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  fmt.fmt.pix.width = 1280;
-  fmt.fmt.pix.height = 720;
+  fmt.fmt.pix.width = requestedWidth;
+  fmt.fmt.pix.height = requestedHeight;
   fmt.fmt.pix.pixelformat = fmtdesc.pixelformat;
   fmt.fmt.pix.field = V4L2_FIELD_NONE;
 

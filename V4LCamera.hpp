@@ -38,7 +38,7 @@ class Camera
 public:
   //static std::vector<V4LCamInfo> Devices();
 
-  Camera(std::string devicePath, size_t bufferCount = 10);
+  Camera(std::string devicePath, int requestedWidth = 640, int requestedHeight = 480, size_t bufferCount = 2);
   ~Camera();
 
   // No copy no move

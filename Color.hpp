@@ -50,6 +50,8 @@ struct Grayscale
   Grayscale(const RGBColor& color);
   Grayscale(const LabColor& color);
   Grayscale(const HSVColor& color);
+
+  void setFromYuv(int y, int u, int v);
 };
 
 struct HSVColor

@@ -161,6 +161,11 @@ Grayscale::Grayscale(const HSVColor& color)
   I = color.V;
 }
 
+void Grayscale::setFromYuv(int y, int, int)
+{
+  I = std::clamp(y, 0, 255);
+}
+
 // HSVColor
 HSVColor::HSVColor(float h, float s, float v) : H(h), S(s), V(v) {}
 

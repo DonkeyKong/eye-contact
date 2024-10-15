@@ -25,7 +25,7 @@ add_library(json INTERFACE)
 target_include_directories(json SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/json/include)
 
 # libjpeg-turbo, we build this ourselves mostly for fun
-# remember to apt install zlib-devel!
+# remember to apt install zlib1g-dev!
 ExternalProject_Add(libjpeg-turbo
   SOURCE_DIR        "${PROJECT_SOURCE_DIR}/deps/libjpeg-turbo"
   BINARY_DIR        "${CMAKE_BINARY_DIR}/libjpeg-turbo_build"
@@ -48,7 +48,7 @@ target_compile_definitions(TinyEXIF PUBLIC "TINYEXIF_NO_XMP_SUPPORT")
 target_include_directories(TinyEXIF SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/TinyEXIF)
 
 # libpng, we build this ourselves mostly for fun
-# remember to apt install zlib-devel!
+# remember to apt install zlib1g-dev!
 if (APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
 set(PNG_ARM_NEON on CACHE bool "" FORCE)
 message("Apple Silicon detected, manually forcing ARM NEON optimizations for libpng")
@@ -65,3 +65,10 @@ target_include_directories(libpng INTERFACE ${PROJECT_SOURCE_DIR}/deps/libpng
 # single-header-image-resampler
 add_library(image_resampler INTERFACE)
 target_include_directories(image_resampler SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/single-header-image-resampler)
+
+# OpenCV
+# Remember to apt install libopencv-dev
+find_package(OpenCV REQUIRED)
+add_library(opencv INTERFACE)
+target_include_directories(opencv SYSTEM INTERFACE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(opencv INTERFACE ${OpenCV_LIBS} )
