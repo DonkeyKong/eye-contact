@@ -16,15 +16,15 @@
 # define YUV2RGB_32  519
 # define YUV2RGB_33    0
 
-// RGBColor
-struct XYZColor
+// RGB24
+struct XYZ3f
 {
   float X = 0;
   float Y = 0;
   float Z = 0;
 };
 
-static void xyzToRgb(const XYZColor &xyz, RGBColor &rgb)
+static void xyzToRgb(const XYZ3f &xyz, RGB24 &rgb)
 {
   double x = xyz.X / 100.0;
   double y = xyz.Y / 100.0;
@@ -43,7 +43,7 @@ static void xyzToRgb(const XYZColor &xyz, RGBColor &rgb)
   rgb.B = b;
 }
 
-static void labToRgb(const LabColor &lab, RGBColor &rgb)
+static void labToRgb(const Lab3f &lab, RGB24 &rgb)
 {
   double y = (lab.L + 16.0) / 116.0;
   double x = lab.a / 500.0 + y;
@@ -60,9 +60,9 @@ static void labToRgb(const LabColor &lab, RGBColor &rgb)
   xyzToRgb({(float)x, (float)y, (float)z}, rgb);
 }
 
-RGBColor::RGBColor(uint8_t r, uint8_t g, uint8_t b) : R(r), G(g), B(b) {}
+RGB24::RGB24(uint8_t r, uint8_t g, uint8_t b) : R(r), G(g), B(b) {}
 
-RGBColor::RGBColor(const HSVColor& color)
+RGB24::RGB24(const HSV3f& color)
 {
   float r, g, b;
   int range = (int)std::floor(color.H / 60.0f);
@@ -109,67 +109,66 @@ RGBColor::RGBColor(const HSVColor& color)
   B = (uint8_t)std::clamp((b * 255.0f), 0.0f, 255.0f);
 }
 
-RGBColor::RGBColor(const Grayscale& c) : R(c.I), G(c.I), B(c.I) {}
+RGB24::RGB24(const Gray8& c) : R(c.I), G(c.I), B(c.I) {}
 
-RGBColor::RGBColor(const LabColor& color)
+RGB24::RGB24(const Lab3f& color)
 {
   labToRgb(color, *this);
 }
 
-void RGBColor::setFromYuv(int y, int u, int v)
+RGB24::RGB24(const YUV24& c)
 {
-  int uv_r, uv_g, uv_b;
-  u -= UV_OFFSET;
-  v -= UV_OFFSET;
+  int y = YUV2RGB_11*((int)c.Y - Y_OFFSET);
+  int u = (int)c.U - UV_OFFSET;
+  int v = (int)c.V - UV_OFFSET;
 
-  uv_r=YUV2RGB_12*u+YUV2RGB_13*v;
-  uv_g=YUV2RGB_22*u+YUV2RGB_23*v;
-  uv_b=YUV2RGB_32*u+YUV2RGB_33*v;
+  int uv_r=YUV2RGB_12*u+YUV2RGB_13*v;
+  int uv_g=YUV2RGB_22*u+YUV2RGB_23*v;
+  int uv_b=YUV2RGB_32*u+YUV2RGB_33*v;
 
-  y=YUV2RGB_11*(y - Y_OFFSET);
   R = std::clamp((y + uv_r) >> 8, 0, 255); // r
   G = std::clamp((y + uv_g) >> 8, 0, 255); // g
   B = std::clamp((y + uv_b) >> 8, 0, 255); // b 
 }
 
-// RGBAColor
-RGBAColor::RGBAColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : RGBColor(r,g,b), A(a) {}
+// RGBA32
+RGBA32::RGBA32(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : RGB24(r,g,b), A(a) {}
 
-RGBAColor::RGBAColor(const RGBColor& color) : RGBColor(color), A(255) {}
+RGBA32::RGBA32(const RGB24& color) : RGB24(color), A(255) {}
 
-RGBAColor::RGBAColor(const HSVColor& color) : RGBColor(color), A(255) {}
+RGBA32::RGBA32(const HSV3f& color) : RGB24(color), A(255) {}
 
-RGBAColor::RGBAColor(const Grayscale& color) : RGBColor(color), A(255) {}
+RGBA32::RGBA32(const Gray8& color) : RGB24(color), A(255) {}
 
-RGBAColor::RGBAColor(const LabColor& color) : RGBColor(color), A(255) {}
+RGBA32::RGBA32(const Lab3f& color) : RGB24(color), A(255) {}
 
-// Grayscale
-Grayscale::Grayscale(uint8_t i) : I(i) {}
+// Gray8
+Gray8::Gray8(uint8_t i) : I(i) {}
 
-Grayscale::Grayscale(const RGBColor& color)
+Gray8::Gray8(const RGB24& color)
 {
   I = (uint8_t)(0.299f * (float)color.R + 0.587f * (float)color.G + 0.114f * (float)color.B);
 }
 
-Grayscale::Grayscale(const LabColor& color)
+Gray8::Gray8(const Lab3f& color)
 {
-  *this = RGBColor(color);
+  *this = RGB24(color);
 }
 
-Grayscale::Grayscale(const HSVColor& color)
+Gray8::Gray8(const HSV3f& color)
 {
   I = color.V;
 }
 
-void Grayscale::setFromYuv(int y, int, int)
+Gray8::Gray8(const YUV24& color)
 {
-  I = std::clamp(y, 0, 255);
+  I = color.Y;
 }
 
-// HSVColor
-HSVColor::HSVColor(float h, float s, float v) : H(h), S(s), V(v) {}
+// HSV3f
+HSV3f::HSV3f(float h, float s, float v) : H(h), S(s), V(v) {}
 
-HSVColor::HSVColor(const RGBColor& color)
+HSV3f::HSV3f(const RGB24& color)
 {
   float r = std::clamp(color.R / 255.0f, 0.0f, 1.0f);
   float g = std::clamp(color.G / 255.0f, 0.0f, 1.0f);
@@ -200,15 +199,15 @@ HSVColor::HSVColor(const RGBColor& color)
   }
 }
 
-HSVColor::HSVColor(const Grayscale& color) : H(0), S(0), V(color.I) {}
+HSV3f::HSV3f(const Gray8& color) : H(0), S(0), V(color.I) {}
 
-HSVColor::HSVColor(const LabColor& color)
+HSV3f::HSV3f(const Lab3f& color)
 {
-  *this = RGBColor(color);
+  *this = RGB24(color);
 }
 
-// LabColor
-static void rgbToXyz(const RGBColor &rgb, XYZColor &xyz)
+// Lab3f
+static void rgbToXyz(const RGB24 &rgb, XYZ3f &xyz)
 {
   double r = (float)rgb.R / 255.0;
   double g = (float)rgb.G / 255.0;
@@ -223,9 +222,9 @@ static void rgbToXyz(const RGBColor &rgb, XYZColor &xyz)
   xyz.Z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041;
 }
 
-static void rgbToLab(const RGBColor &rgb, LabColor &lab)
+static void rgbToLab(const RGB24 &rgb, Lab3f &lab)
 {
-  XYZColor xyz;
+  XYZ3f xyz;
   rgbToXyz(rgb, xyz);
 
   double x = xyz.X / 95.047;
@@ -241,26 +240,28 @@ static void rgbToLab(const RGBColor &rgb, LabColor &lab)
   lab.b = 200 * (y - z);
 }
 
-LabColor::LabColor(float l, float a, float b) : L(l), a(a), b(b) {}
+Lab3f::Lab3f(float l, float a, float b) : L(l), a(a), b(b) {}
 
-LabColor::LabColor(const RGBColor& color)
+Lab3f::Lab3f(const RGB24& color)
 {
   rgbToLab(color, *this);
 }
 
-LabColor::LabColor(const HSVColor& color)
+Lab3f::Lab3f(const HSV3f& color)
 {
-  RGBColor intermediate = color;
+  RGB24 intermediate = color;
   rgbToLab(intermediate, *this);
 }
 
-LabColor::LabColor(const Grayscale& color)
+Lab3f::Lab3f(const Gray8& color)
 {
-  RGBColor intermediate = color;
+  RGB24 intermediate = color;
   rgbToLab(intermediate, *this);
 }
 
-float LabColor::deltaE(const LabColor& other) const
+float Lab3f::deltaE(const Lab3f& other) const
 {
   return sqrtf(powf(L-other.L, 2) + powf(a-other.a, 2) + powf(b-other.b, 2));
 }
+
+YUV24::YUV24(uint8_t y, uint8_t u, uint8_t v) : Y(y), U(u), V(v) {}

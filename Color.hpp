@@ -4,115 +4,125 @@
 #include <unordered_map>
 #include <vector>
 
-struct RGBColor;
-struct RGBAColor;
-struct Grayscale;
-struct HSVColor;
-struct LabColor;
+struct RGB24;
+struct RGBA32;
+struct Gray8;
+struct HSV3f;
+struct Lab3f;
+struct YUV24;
 
 #pragma pack(push, 1)
-struct RGBColor
+struct RGB24
 {
   uint8_t R = 0;
   uint8_t G = 0;
   uint8_t B = 0;
 
-  RGBColor() = default;
-  RGBColor(const RGBColor& color) = default;
-  RGBColor(uint8_t r, uint8_t g, uint8_t b);
-  RGBColor(const HSVColor& color);
-  RGBColor(const Grayscale& color);
-  RGBColor(const LabColor& color);
-
-  void setFromYuv(int y, int u, int v);
+  RGB24() = default;
+  RGB24(const RGB24& color) = default;
+  RGB24(uint8_t r, uint8_t g, uint8_t b);
+  RGB24(const HSV3f& color);
+  RGB24(const Gray8& color);
+  RGB24(const Lab3f& color);
+  RGB24(const YUV24& color);
 };
 
-struct RGBAColor : public RGBColor
+struct RGBA32 : public RGB24
 {
   uint8_t A = 255;
 
-  RGBAColor() = default;
-  RGBAColor(const RGBAColor& color) = default;
-  RGBAColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-  RGBAColor(const RGBColor& color);
-  RGBAColor(const HSVColor& color);
-  RGBAColor(const Grayscale& color);
-  RGBAColor(const LabColor& color);
+  RGBA32() = default;
+  RGBA32(const RGBA32& color) = default;
+  RGBA32(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+  RGBA32(const RGB24& color);
+  RGBA32(const HSV3f& color);
+  RGBA32(const Gray8& color);
+  RGBA32(const Lab3f& color);
 };
 
-struct Grayscale
+struct Gray8
 {
   uint8_t I = 0;
 
-  Grayscale() = default;
-  Grayscale(const Grayscale& color) = default;
-  Grayscale(uint8_t i);
-  Grayscale(const RGBColor& color);
-  Grayscale(const LabColor& color);
-  Grayscale(const HSVColor& color);
-
-  void setFromYuv(int y, int u, int v);
+  Gray8() = default;
+  Gray8(const Gray8& color) = default;
+  Gray8(uint8_t i);
+  Gray8(const RGB24& color);
+  Gray8(const Lab3f& color);
+  Gray8(const HSV3f& color);
+  Gray8(const YUV24& color);
 };
 
-struct HSVColor
+struct HSV3f
 {
   float H = 0.0f;
   float S = 0.0f;
   float V = 0.0f;
 
-  HSVColor() = default;
-  HSVColor(const HSVColor& color) = default;
-  HSVColor(float h, float s, float v);
-  HSVColor(const RGBColor& color);
-  HSVColor(const Grayscale& color);
-  HSVColor(const LabColor& color);
+  HSV3f() = default;
+  HSV3f(const HSV3f& color) = default;
+  HSV3f(float h, float s, float v);
+  HSV3f(const RGB24& color);
+  HSV3f(const Gray8& color);
+  HSV3f(const Lab3f& color);
 };
 
-struct LabColor
+struct Lab3f
 {
   float L = 0;
   float a = 0;
   float b = 0;
 
-  LabColor() = default;
-  LabColor(const LabColor& color) = default;
-  LabColor(float l, float a, float b);
-  LabColor(const RGBColor& color);
-  LabColor(const HSVColor& color);
-  LabColor(const Grayscale& color);
+  Lab3f() = default;
+  Lab3f(const Lab3f& color) = default;
+  Lab3f(float l, float a, float b);
+  Lab3f(const RGB24& color);
+  Lab3f(const HSV3f& color);
+  Lab3f(const Gray8& color);
 
-  float deltaE(const LabColor& other) const;
+  float deltaE(const Lab3f& other) const;
 
-  LabColor operator+ (const LabColor& c)  const
+  Lab3f operator+ (const Lab3f& c)  const
   {
     return {L + c.L, a + c.a, b + c.b};
   }
 
-  LabColor operator* (const LabColor& c)  const
+  Lab3f operator* (const Lab3f& c)  const
   {
     return {L * c.L, a * c.a, b * c.b};
   }
 
-  void operator+= (const LabColor& c)
+  void operator+= (const Lab3f& c)
   {
     L += c.L;
     a += c.a;
     b += c.b;
   }
 
-  LabColor operator- (const LabColor& c) const
+  Lab3f operator- (const Lab3f& c) const
   {
     return {L - c.L, a - c.a, b - c.b};
   }
 
-  LabColor operator* (float c) const
+  Lab3f operator* (float c) const
   {
     return {c*L, c*a, c*b};
   }
 
-  friend LabColor operator*(float c, const LabColor& rhs)
+  friend Lab3f operator*(float c, const Lab3f& rhs)
   {
     return {c*rhs.L, c*rhs.a, c*rhs.b};
   }
+};
+
+struct YUV24
+{
+  uint8_t Y = 0;
+  uint8_t U = 0;
+  uint8_t V = 0;
+
+  YUV24() = default;
+  YUV24(const YUV24& color) = default;
+  YUV24(uint8_t y, uint8_t u, uint8_t v);
 };
 #pragma pack(pop)

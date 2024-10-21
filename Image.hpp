@@ -61,7 +61,7 @@ struct ScaleSettings
   InterpolationMode interpolationMode = InterpolationMode::Auto;
 
   // When scaling or cropping, this determines what color fills in the background if not all destination pixels are covered
-  RGBAColor backgroundColor {255, 255, 255, 255};
+  RGBA32 backgroundColor {255, 255, 255, 255};
 };
 
 template <typename C>
@@ -96,6 +96,11 @@ public:
     const uint8_t* data() const
     {
       return data_.data();
+    }
+
+    size_t dataSizeBytes() const 
+    {
+      return data_.size();
     }
 
     // Get a pointer to the first pixel element
@@ -437,11 +442,11 @@ private:
     
     // We need to friend all the possible specializations
     // because C++ is a mystery beyond understanding.
-    friend class Image<RGBAColor>;
-    friend class Image<RGBColor>;
-    friend class Image<Grayscale>;
-    friend class Image<HSVColor>;
-    friend class Image<LabColor>;
+    friend class Image<RGBA32>;
+    friend class Image<RGB24>;
+    friend class Image<Gray8>;
+    friend class Image<HSV3f>;
+    friend class Image<Lab3f>;
 
     int width_, height_;
     std::vector<uint8_t> data_;

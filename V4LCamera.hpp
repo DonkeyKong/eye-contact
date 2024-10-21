@@ -36,8 +36,6 @@ private:
 class Camera
 {
 public:
-  //static std::vector<V4LCamInfo> Devices();
-
   Camera(std::string devicePath, int requestedWidth = 640, int requestedHeight = 480, size_t bufferCount = 2);
   ~Camera();
 
@@ -46,16 +44,20 @@ public:
   Camera(Camera&&) = delete;
 
   Frame getFrame();
+
+  int width() const;
+  int height() const;
+
 private:
-  std::string devicePath;
-  int fd;
-  std::vector<MappedBuffer> buffers;
+  std::string devicePath_;
+  int fd_;
+  std::vector<MappedBuffer> buffers_;
 
   // Image format information
-  int width = 0;
-  int height = 0;
-  int strideInBytes = 0;
-  std::string format = "UKWN";
+  int width_ = 0;
+  int height_ = 0;
+  int strideInBytes_ = 0;
+  std::string format_ = "UKWN";
 };
 
 }

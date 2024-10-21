@@ -111,7 +111,7 @@ ImageFormat ImageIO::detectFormat(std::filesystem::path imagePath)
   }
 }
 
-void ImageIO::readJpeg(std::istream& inputStream, Image<RGBColor>& img, ImageLoadSettings settings)
+void ImageIO::readJpeg(std::istream& inputStream, Image<RGB24>& img, ImageLoadSettings settings)
 {
   std::vector<char> compressedImage;
   compressedImage.assign(std::istreambuf_iterator<char>(inputStream), std::istreambuf_iterator<char>());
@@ -120,7 +120,7 @@ void ImageIO::readJpeg(std::istream& inputStream, Image<RGBColor>& img, ImageLoa
   tjhandle _jpegDecompressor = tjInitDecompress();
   // const cast to deal with C api
   tjDecompressHeader2(_jpegDecompressor, (uint8_t*)compressedImage.data(), compressedImage.size(), &img.width_, &img.height_, &jpegSubsamp);
-  img.data_.resize(img.width_ * img.height_ * sizeof(RGBColor));
+  img.data_.resize(img.width_ * img.height_ * sizeof(RGB24));
   tjDecompress2(_jpegDecompressor, (uint8_t*)compressedImage.data(), compressedImage.size(), img.data_.data(), img.width_, 0 /*pitch*/, img.height_, TJPF_RGB, TJFLAG_FASTDCT);
   tjDestroy(_jpegDecompressor);
 
@@ -131,7 +131,7 @@ void ImageIO::readJpeg(std::istream& inputStream, Image<RGBColor>& img, ImageLoa
   }
 }
 
-void ImageIO::writeJpeg(std::ostream& outputStream, const Image<RGBColor>& img, ImageSaveSettings settings)
+void ImageIO::writeJpeg(std::ostream& outputStream, const Image<RGB24>& img, ImageSaveSettings settings)
 {
   long unsigned int jpegSize = 0;
   uint8_t *compressedImage = NULL; //!< Memory is allocated by tjCompress2 if _jpegSize == 0
@@ -157,7 +157,7 @@ void ImageIO::writeJpeg(std::ostream& outputStream, const Image<RGBColor>& img, 
   tjFree(compressedImage);
 }
 
-void ImageIO::readPng(std::istream& inputStream, Image<RGBAColor>& img, ImageLoadSettings /*settings*/)
+void ImageIO::readPng(std::istream& inputStream, Image<RGBA32>& img, ImageLoadSettings /*settings*/)
 {
   PngReadContext ctx;
   if (!ctx.ok())
@@ -216,7 +216,7 @@ void ImageIO::readPng(std::istream& inputStream, Image<RGBAColor>& img, ImageLoa
   }
 }
 
-void ImageIO::writePng(std::ostream& outputStream, const Image<RGBAColor>& img, ImageSaveSettings /*settings*/)
+void ImageIO::writePng(std::ostream& outputStream, const Image<RGBA32>& img, ImageSaveSettings /*settings*/)
 {
   PngWriteContext ctx;
   if (!ctx.ok())

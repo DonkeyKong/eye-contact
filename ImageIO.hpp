@@ -44,13 +44,13 @@ public:
 
     if (format == ImageFormat::JPEG)
     {
-      Image<RGBColor> img;
+      Image<RGB24> img;
       readJpeg(stream, img, settings);
       return img.moveConvert<Color>();
     }
     else if (format == ImageFormat::PNG)
     {
-      Image<RGBAColor> img;
+      Image<RGBA32> img;
       readPng(stream, img, settings);
       return img.moveConvert<Color>();
     }
@@ -68,7 +68,7 @@ public:
   }
 
   template<typename Color>
-  static Image<RGBAColor> LoadFromFile(std::filesystem::path imagePath, ImageLoadSettings settings = {})
+  static Image<RGBA32> LoadFromFile(std::filesystem::path imagePath, ImageLoadSettings settings = {})
   {
     std::ifstream inputStream(imagePath, std::ios::binary);
     return LoadFromStream<Color>(inputStream, settings);
@@ -92,25 +92,25 @@ public:
 
     if (settings.saveFormat == ImageFormat::JPEG)
     {
-      if constexpr(std::is_same_v<Color, RGBColor>)
+      if constexpr(std::is_same_v<Color, RGB24>)
       {
         writeJpeg(stream, image, settings);
       }
       else
       {
-        Image<RGBColor> conv = image.template convert<RGBColor>();
+        Image<RGB24> conv = image.template convert<RGB24>();
         writeJpeg(stream, conv, settings);
       }
     }
     else if (settings.saveFormat == ImageFormat::PNG)
     {
-      if constexpr(std::is_same_v<Color, RGBAColor>)
+      if constexpr(std::is_same_v<Color, RGBA32>)
       {
         writePng(stream, image, settings);
       }
       else
       {
-        Image<RGBAColor> conv = image.template convert<RGBAColor>();
+        Image<RGBA32> conv = image.template convert<RGBA32>();
         writePng(stream, conv, settings);
       }
     }
@@ -143,8 +143,8 @@ public:
 private: 
   static ImageFormat detectFormat(uint8_t header[8]);
   static ImageFormat detectFormat(std::filesystem::path imagePath);
-  static void readJpeg(std::istream&, Image<RGBColor>&, ImageLoadSettings);
-  static void writeJpeg(std::ostream&, const Image<RGBColor>&, ImageSaveSettings);
-  static void readPng(std::istream&, Image<RGBAColor>&, ImageLoadSettings);
-  static void writePng(std::ostream&, const Image<RGBAColor>&, ImageSaveSettings);
+  static void readJpeg(std::istream&, Image<RGB24>&, ImageLoadSettings);
+  static void writeJpeg(std::ostream&, const Image<RGB24>&, ImageSaveSettings);
+  static void readPng(std::istream&, Image<RGBA32>&, ImageLoadSettings);
+  static void writePng(std::ostream&, const Image<RGBA32>&, ImageSaveSettings);
 };
