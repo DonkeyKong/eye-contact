@@ -10,12 +10,14 @@
 
 #include "Color.hpp"
 #include "Image.hpp"
+#include "Draw.hpp"
 #include "ImageIO.hpp"
 #include "V4LCamera.hpp"
 #include "RemoteEyes.hpp"
 
 using namespace V4L2;
 using namespace cv;
+using namespace std::chrono_literals;
 
 const char* OPENCV_DATA_DIR = "/usr/share/opencv4";
 
@@ -62,9 +64,13 @@ int main(int argc, char *argv[])
     
     // Load face classifier
     CascadeClassifier cascade;
-    cascade.load(fmt::format("{}/haarcascades/haarcascade_frontalface_alt.xml", OPENCV_DATA_DIR));
+    cascade.load(fmt::format("{}/haarcascades/haarcascade_frontalface_alt2.xml", OPENCV_DATA_DIR));
 
     Image<Gray8> image0, image1;
+    cv::Size2i minFaceSize(64,64);
+    cv::Size2i maxFaceSize(384,384);
+    std::chrono::steady_clock::time_point nextSave;
+
     //RemoteEyes eyes;
     
     while (true)
@@ -84,22 +90,36 @@ int main(int argc, char *argv[])
       // Detect faces of different sizes using cascade classifier 
       auto t2 = std::thread([&]()
       {
-        cascade.detectMultiScale(mat0, faces0, 1.1, 3, CASCADE_SCALE_IMAGE, Size(128, 128), Size(320, 320));
-        ImageIO::SaveToFile("cam0.jpg", image0);
+        cascade.detectMultiScale(mat0, faces0, 1.1, 3, CASCADE_SCALE_IMAGE, minFaceSize, maxFaceSize);
       });
-      //cascade.detectMultiScale(mat1, faces1, 1.1, 3, CASCADE_SCALE_IMAGE, Size(128, 128), Size(320, 320));
-      //ImageIO::SaveToFile("cam1.jpg", image1);
+      cascade.detectMultiScale(mat1, faces1, 1.1, 3, CASCADE_SCALE_IMAGE, minFaceSize, maxFaceSize);
       t2.join();
 
-      //std::cout << "Faces found: ( " << faces0.size() << " , " << faces1.size() << " )\n";
-
-      if (faces0.size() > 0)
-      {
-        float yaw = (float)(faces0[0].x - cam0.width() / 2) / (float)(cam0.width() / 2) * -60.0;
-        float pitch = (float)(faces0[0].y - cam0.height() / 2) / (float)(cam0.height() / 2) * -60.0;
-
-        std::cout << "Looking at: ( " << yaw << "º , " << pitch << "º )\n";
+      //if (faces0.size() > 0)
+      //{
+        // float yaw = (float)(faces0[0].x - cam0.width() / 2) / (float)(cam0.width() / 2) * -60.0;
+        // float pitch = (float)(faces0[0].y - cam0.height() / 2) / (float)(cam0.height() / 2) * -60.0;
+        //std::cout << "Looking at: ( " << yaw << "º , " << pitch << "º )\n";
         //eyes.look(yaw, pitch);
+      //}
+
+      for (const auto& face : faces0)
+      {
+        DrawRect(image0, face.x, face.y, face.width, face.height, 3.0f, {255});
+        DrawRect(image0, face.x, face.y, face.width, face.height, 1.0f, {0});
+      }
+
+      for (const auto& face : faces1)
+      {
+        DrawRect(image1, face.x, face.y, face.width, face.height, 3.0f, {255});
+        DrawRect(image1, face.x, face.y, face.width, face.height, 1.0f, {0});
+      }
+
+      if (std::chrono::steady_clock::now() > nextSave)
+      {
+        ImageIO::SaveToFile("cam0.jpg", image0);
+        ImageIO::SaveToFile("cam1.jpg", image1);
+        nextSave = std::chrono::steady_clock::now() + 200ms;
       }
     }
 
