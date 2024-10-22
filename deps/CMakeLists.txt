@@ -66,9 +66,7 @@ target_include_directories(libpng INTERFACE ${PROJECT_SOURCE_DIR}/deps/libpng
 add_library(image_resampler INTERFACE)
 target_include_directories(image_resampler SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/single-header-image-resampler)
 
-# OpenCV
-# Remember to apt install libopencv-dev
-find_package(OpenCV REQUIRED)
-add_library(opencv INTERFACE)
-target_include_directories(opencv SYSTEM INTERFACE ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(opencv INTERFACE ${OpenCV_LIBS} )
+# TensorFlow Lite
+add_subdirectory(
+  "${PROJECT_SOURCE_DIR}/deps/tensorflow/tensorflow/lite"
+  "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-lite" EXCLUDE_FROM_ALL)

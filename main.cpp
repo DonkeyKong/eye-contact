@@ -5,9 +5,6 @@
 
 #include <fmt/format.h>
 
-#include <opencv2/objdetect.hpp>
-#include <opencv2/imgproc.hpp>
-
 #include "Color.hpp"
 #include "Image.hpp"
 #include "Draw.hpp"
@@ -16,10 +13,7 @@
 #include "RemoteEyes.hpp"
 
 using namespace V4L2;
-using namespace cv;
 using namespace std::chrono_literals;
-
-const char* OPENCV_DATA_DIR = "/usr/share/opencv4";
 
 template <typename Color>
 Image<Color> imageFromFrame(const Frame& f)
@@ -61,14 +55,8 @@ int main(int argc, char *argv[])
     std::cout << "Setting up cam 1...\n";
     Camera cam1("/dev/video2", 1280, 720, 3);
     std::cout << "Cam 1 ok!\n";
-    
-    // Load face classifier
-    CascadeClassifier cascade;
-    cascade.load(fmt::format("{}/haarcascades/haarcascade_frontalface_alt2.xml", OPENCV_DATA_DIR));
 
     Image<Gray8> image0, image1;
-    cv::Size2i minFaceSize(64,64);
-    cv::Size2i maxFaceSize(384,384);
     std::chrono::steady_clock::time_point nextSave;
 
     //RemoteEyes eyes;
@@ -81,20 +69,9 @@ int main(int argc, char *argv[])
       });
       image1 = imageFromFrame<Gray8>(cam1.getFrame());
       t.join();
-
-      cv::Mat mat0(image0.height(), image0.width(), CV_8UC1, (uchar*) image0.data());
-      cv::Mat mat1(image1.height(), image1.width(), CV_8UC1, (uchar*) image1.data());
       
-      std::vector<Rect> faces0, faces1;
-  
-      // Detect faces of different sizes using cascade classifier 
-      auto t2 = std::thread([&]()
-      {
-        cascade.detectMultiScale(mat0, faces0, 1.1, 3, CASCADE_SCALE_IMAGE, minFaceSize, maxFaceSize);
-      });
-      cascade.detectMultiScale(mat1, faces1, 1.1, 3, CASCADE_SCALE_IMAGE, minFaceSize, maxFaceSize);
-      t2.join();
-
+      //std::vector<Rect> faces0, faces1;
+      // Detect faces
       //if (faces0.size() > 0)
       //{
         // float yaw = (float)(faces0[0].x - cam0.width() / 2) / (float)(cam0.width() / 2) * -60.0;
@@ -102,18 +79,17 @@ int main(int argc, char *argv[])
         //std::cout << "Looking at: ( " << yaw << "º , " << pitch << "º )\n";
         //eyes.look(yaw, pitch);
       //}
+      // for (const auto& face : faces0)
+      // {
+      //   DrawRect(image0, face.x, face.y, face.width, face.height, 3.0f, {255});
+      //   DrawRect(image0, face.x, face.y, face.width, face.height, 1.0f, {0});
+      // }
 
-      for (const auto& face : faces0)
-      {
-        DrawRect(image0, face.x, face.y, face.width, face.height, 3.0f, {255});
-        DrawRect(image0, face.x, face.y, face.width, face.height, 1.0f, {0});
-      }
-
-      for (const auto& face : faces1)
-      {
-        DrawRect(image1, face.x, face.y, face.width, face.height, 3.0f, {255});
-        DrawRect(image1, face.x, face.y, face.width, face.height, 1.0f, {0});
-      }
+      // for (const auto& face : faces1)
+      // {
+      //   DrawRect(image1, face.x, face.y, face.width, face.height, 3.0f, {255});
+      //   DrawRect(image1, face.x, face.y, face.width, face.height, 1.0f, {0});
+      // }
 
       if (std::chrono::steady_clock::now() > nextSave)
       {
