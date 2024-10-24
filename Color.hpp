@@ -125,4 +125,25 @@ struct YUV24
   YUV24(const YUV24& color) = default;
   YUV24(uint8_t y, uint8_t u, uint8_t v);
 };
+
+template <float VMin = 0.0f, float VMax = 1.0f>
+struct RGB3f
+{
+  static constexpr float VRange = VMax - VMin;
+
+  float R = 0;
+  float G = 0;
+  float B = 0;
+
+  RGB3f() = default;
+  RGB3f(const RGB3f& color) = default;
+  RGB3f(float r, float g, float b) : R(r), G(g), B(b) {}
+  RGB3f(const RGB24& color)
+  {
+    R = (float)color.R / (255.0f * VRange) + VMin;
+    G = (float)color.G / (255.0f * VRange) + VMin;
+    B = (float)color.B / (255.0f * VRange) + VMin;
+  }
+};
+
 #pragma pack(pop)

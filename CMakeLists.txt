@@ -21,4 +21,11 @@ target_link_libraries(${PROJECT_NAME} broadcom_host
                                       magic_enum
                                       image_resampler
                                       TinyEXIF
-                                      opencv)
+                                      tensorflow-lite)
+
+add_custom_target(copy_models ALL)
+
+add_custom_command(TARGET copy_models POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${PROJECT_SOURCE_DIR}/models
+                    ${CMAKE_CURRENT_BINARY_DIR}/models)

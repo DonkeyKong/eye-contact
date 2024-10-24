@@ -61,7 +61,7 @@ struct ScaleSettings
   InterpolationMode interpolationMode = InterpolationMode::Auto;
 
   // When scaling or cropping, this determines what color fills in the background if not all destination pixels are covered
-  RGBA32 backgroundColor {255, 255, 255, 255};
+  RGB24 backgroundColor {0, 0, 0};
 };
 
 template <typename C>

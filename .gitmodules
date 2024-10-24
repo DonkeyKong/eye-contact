@@ -25,6 +25,8 @@
 [submodule "deps/TinyEXIF"]
 	path = deps/TinyEXIF
 	url = https://github.com/cdcseacave/TinyEXIF.git
+  shallow = true
 [submodule "deps/tensorflow"]
 	path = deps/tensorflow
 	url = https://github.com/tensorflow/tensorflow.git
+  shallow = true

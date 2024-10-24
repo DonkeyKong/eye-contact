@@ -67,6 +67,9 @@ add_library(image_resampler INTERFACE)
 target_include_directories(image_resampler SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/single-header-image-resampler)
 
 # TensorFlow Lite
+# The library is added in the subdir, but here is the relevant line
+# to get the target name
+# add_library(tensorflow-lite INTERFACE)
 add_subdirectory(
   "${PROJECT_SOURCE_DIR}/deps/tensorflow/tensorflow/lite"
   "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-lite" EXCLUDE_FROM_ALL)
