@@ -7,8 +7,7 @@
 #include "Image.hpp"
 #include "Draw.hpp"
 #include "ImageIO.hpp"
-
-
+#include "FunctionTimer.hpp"
 
 class FaceDetector
 {
@@ -16,8 +15,8 @@ public:
 
 enum class FaceKeyPoint : int
 {
-  RIGHT_EYE = 0,
-  LEFT_EYE = 1,
+  LEFT_EYE = 0,
+  RIGHT_EYE = 1,
   NOSE_TIP = 2,
   MOUTH_CENTER = 3,
   RIGHT_EAR_TRAGION = 4,
@@ -26,89 +25,81 @@ enum class FaceKeyPoint : int
 
 class Detection
 {
-    public:
-        float score;
-        float class_id;
-        float xmin;
-        float ymin;
-        float width;
-        float height;
-        
-        float rightEyeX;
-        float rightEyeY;
-        float leftEyeX;
-        float leftEyeY;
-        float noseTipX;
-        float noseTipY;
-        float mouthX;
-        float mouthY;
-        float rightEarX;
-        float rightEarY;
-        float leftEarX;
-        float leftEarY;
+public:
+  float score;
+  float class_id;
+  float xmin;
+  float ymin;
+  float width;
+  float height;
 
-        Detection()
-        {
-            this->score = 0.0;
-            this->class_id = 0.0;
-            this->xmin = 0.0;
-            this->ymin = 0.0;
-            this->width = 0.0;
-            this->height = 0.0;
-        }
-        
-        Detection(float score, float class_id, float xmin, float ymin, float width, float height)
-        {
-            this->score = score;
-            this->class_id = class_id;
-            this->xmin = xmin;
-            this->ymin = ymin;
-            this->width = width;
-            this->height = height;
-        }
+  float rightEyeX;
+  float rightEyeY;
+  float leftEyeX;
+  float leftEyeY;
+  float noseTipX;
+  float noseTipY;
+  float mouthX;
+  float mouthY;
+  float rightEarX;
+  float rightEarY;
+  float leftEarX;
+  float leftEarY;
 
-        float centerX()
-        {
-          return xmin + width / 2.0f;
-        }
+  Detection()
+  {
+    this->score = 0.0;
+    this->class_id = 0.0;
+    this->xmin = 0.0;
+    this->ymin = 0.0;
+    this->width = 0.0;
+    this->height = 0.0;
+  }
 
-        float centerY()
-        {
-          return ymin + height / 2.0f;
-        }
+  Detection(float score, float class_id, float xmin, float ymin, float width, float height)
+  {
+    this->score = score;
+    this->class_id = class_id;
+    this->xmin = xmin;
+    this->ymin = ymin;
+    this->width = width;
+    this->height = height;
+  }
 
-        std::string to_str()
-        {
-            std::string retstr;
+  // Scale the results from normalized coords to the size of some destination image
+  void scaleResults(float xScale, float yScale)
+  {
+    xmin *= xScale;
+    width *= xScale;
+    rightEyeX *= xScale;
+    leftEyeX *= xScale;
+    noseTipX *= xScale;
+    mouthX *= xScale;
+    rightEarX *= xScale;
+    leftEarX *= xScale;
 
-            retstr += "score : " + std::to_string(this->score) + "\n";
-            retstr += "class_id : " + std::to_string(this->class_id) + "\n";
-            retstr += "xmin : " + std::to_string(this->xmin) + "\n";
-            retstr += "ymin : " + std::to_string(this->ymin) + "\n";
-            retstr += "width : " + std::to_string(this->width) + "\n";
-            retstr += "height : " + std::to_string(this->height) + "\n";
-            return retstr;
-        }
-        
-        ~Detection() {};
+    ymin *= yScale;
+    height *= yScale;
+    rightEyeY *= yScale;
+    leftEyeY *= yScale;
+    noseTipY *= yScale;
+    mouthY *= yScale;
+    rightEarY *= yScale;
+    leftEarY *= yScale;
+  }
+
+  float centerX()
+  {
+    return xmin + width / 2.0f;
+  }
+
+  float centerY()
+  {
+    return ymin + height / 2.0f;
+  }
 };
+
 private:
-// What follows is the example code verbatim 
-
-/*
- * Display any vector content on to the console. 
- */ 
-template<typename T>
-static void lgt_print_vec(std::string vname, std::vector<T> const &a) 
-{
-    std::cout << vname;
-    for(auto i=0; i < a.size(); i++)
-    {
-        std::cout << a.at(i) << " ";
-    }
-    std::cout << std::endl;
-}
-
 /*
  * Sort vector based on the given indices.
  */ 
@@ -267,96 +258,39 @@ static std::vector<int> argsort(Iter begin, Iter end, Compare comp)
 
 struct SsdAnchorsCalculatorOptions
 {
-    public:
+  // Size of input images.
+  uint16_t input_size_width = 128;
+  uint16_t input_size_height = 128;
 
-        // Size of input images.
-        uint16_t input_size_width;
-        uint16_t input_size_height;
+  // Min and max scales for generating anchor boxes on feature maps.
+  float min_scale = 0.1484375f;
+  float max_scale = 0.75f;
 
-        // Min and max scales for generating anchor boxes on feature maps.
-        float min_scale;
-        float max_scale;
+  // The offset for the center of anchors. The value is in the scale of stride.
+  // E.g. 0.5 meaning 0.5 * |current_stride| in pixels.
+  float anchor_offset_x = 0.5f;
+  float anchor_offset_y = 0.5f;
 
-        // The offset for the center of anchors. The value is in the scale of stride.
-        // E.g. 0.5 meaning 0.5 * |current_stride| in pixels.
-        float anchor_offset_x;
-        float anchor_offset_y;
+  // An additional anchor is added with this aspect ratio and a scale
+  // interpolated between the scale for a layer and the scale for the next layer
+  // (1.0 for the last layer). This anchor is not included if this value is 0.
+  float interpolated_scale_aspect_ratio = 1.0f;
 
-        // List of different aspect ratio to generate anchors.
-        float aspect_ratios[1] = {1.0}; 
+  // A boolean to indicate whether the fixed 3 boxes per location is used in the lowest layer.
+  bool reduce_boxes_in_lowest_layer = false; 
 
-        // An additional anchor is added with this aspect ratio and a scale
-        // interpolated between the scale for a layer and the scale for the next layer
-        // (1.0 for the last layer). This anchor is not included if this value is 0.
-        float interpolated_scale_aspect_ratio;
+  // Whether use fixed width and height (e.g. both 1.0f) for each anchor.
+  // This option can be used when the predicted anchor width and height are in  pixels.
+  bool fixed_anchor_size = false;
 
-        // A boolean to indicate whether the fixed 3 boxes per location is used in the lowest layer.
-        bool reduce_boxes_in_lowest_layer = false; 
+  // Strides of each output feature maps.
+  std::vector<int> strides = {8, 16, 16, 16};
 
-        // Whether use fixed width and height (e.g. both 1.0f) for each anchor.
-        // This option can be used when the predicted anchor width and height are in  pixels.
-        bool fixed_anchor_size = false;
+  // Number of output feature maps to generate the anchors on.
+  uint8_t num_layers = 4;
 
-        // Sizes of output feature maps to create anchors. Either feature_map size or
-        // stride should be provided.
-        uint32_t feature_map_width[0];
-        uint32_t feature_map_height[0];
-        uint32_t feature_map_width_size = sizeof(feature_map_width);
-        uint32_t feature_map_height_size = sizeof(feature_map_height);
-
-        // Strides of each output feature maps.
-        uint8_t strides[4] = {8, 16, 16, 16};
-        uint8_t strides_size;
-
-        // Number of output feature maps to generate the anchors on.
-        uint8_t num_layers;
-
-        // Sizeof aspect ratio to generate anchors.
-        uint8_t aspect_ratios_size;
-
-        std::string to_str()
-        {
-            std::string retstr;
-
-            retstr += "input_size_width: " + std::to_string(this->input_size_width) + "\n";
-            retstr += "input_size_height: " + std::to_string(this->input_size_height) + "\n";
-            retstr += "min_scale: " + std::to_string(this->min_scale) + "\n";
-            retstr += "max_scale: " + std::to_string(this->max_scale) + "\n";
-            retstr += "anchor_offset_x: " + std::to_string(this->anchor_offset_x) + "\n";
-            retstr += "anchor_offset_y: " + std::to_string(this->anchor_offset_y) + "\n";
-            retstr += "num_layers: " + std::to_string(this->num_layers) + "\n";
-            retstr += "feature_map_width: [" + std::to_string(this->feature_map_width[0]) + "]\n";
-            retstr += "feature_map_height: [" + std::to_string(this->feature_map_height[0]) + "]\n";
-            retstr += "strides: [" + std::to_string(this->strides[0]) + " " + 
-                                     std::to_string(this->strides[1]) + " " +
-                                     std::to_string(this->strides[2]) + " " +
-                                     std::to_string(this->strides[3]) + " " + "]\n";
-            retstr += "aspect_ratios: " + std::to_string(this->aspect_ratios[0]) + "\n";
-            retstr += "reduce_boxes_in_lowest_layer: " + std::to_string(this->reduce_boxes_in_lowest_layer) + "\n";
-            retstr += "interpolated_scale_aspect_ratio: " + std::to_string(this->interpolated_scale_aspect_ratio) + "\n";
-            retstr += "fixed_anchor_size: " + std::to_string(this->fixed_anchor_size) + "\n";
-            return retstr;
-        }
-        SsdAnchorsCalculatorOptions() = default;
-        SsdAnchorsCalculatorOptions(uint16_t input_size_width, uint16_t input_size_height, float min_scale, float max_scale,
-                                    float anchor_offset_x, float anchor_offset_y, float interpolated_scale_aspect_ratio, 
-                                    bool reduce_boxes_in_lowest_layer, bool fixed_anchor_size, uint8_t num_layers)
-        {
-            this->input_size_width = input_size_width;
-            this->input_size_height = input_size_height;
-            this->min_scale = min_scale;
-            this->max_scale = max_scale;
-            this->anchor_offset_x = anchor_offset_x ? anchor_offset_x : 0.5;
-            this->anchor_offset_y = anchor_offset_y ? anchor_offset_y : 0.5;
-            this->aspect_ratios_size = sizeof(this->aspect_ratios) / sizeof(this->aspect_ratios[0]);
-            this->interpolated_scale_aspect_ratio = interpolated_scale_aspect_ratio ? interpolated_scale_aspect_ratio : 1.0;
-            this->reduce_boxes_in_lowest_layer = reduce_boxes_in_lowest_layer ? reduce_boxes_in_lowest_layer : false;
-            this->fixed_anchor_size = fixed_anchor_size ? fixed_anchor_size : false;
-            this->strides_size = sizeof(this->strides);
-            this->num_layers = num_layers;
-        }
-
-        ~SsdAnchorsCalculatorOptions() {};
+  // List of different aspect ratio to generate anchors.
+  std::vector<float> aspect_ratios = {1.0};
 };
 
 
@@ -390,78 +324,29 @@ class Anchor
         ~Anchor() {};
 };
 
-class TfLiteTensorsToDetectionsCalculatorOptions
+struct TfLiteTensorsToDetectionsCalculatorOptions
 {
-    public:
-
-        uint32_t num_classes;
-        uint32_t num_boxes;
-        uint32_t num_coords;
-        uint32_t keypoint_coord_offset;
-        uint32_t num_keypoints;
-        uint32_t num_values_per_keypoint;
-        uint32_t box_coord_offset;
-        float x_scale;
-        float y_scale;
-        float w_scale;
-        float h_scale;
-        float score_clipping_thresh;
-        float min_score_thresh;
-        bool apply_exponential_on_box_size;
-        bool reverse_output_order;
-        bool sigmoid_score;
-        bool flip_vertically;
-
-        TfLiteTensorsToDetectionsCalculatorOptions(uint32_t num_classes, uint32_t num_boxes, uint32_t num_coords, uint32_t keypoint_coord_offset, float score_clipping_thresh, float min_score_thresh, uint32_t num_keypoints, uint32_t num_values_per_keypoint, uint32_t box_coord_offset, float x_scale, float y_scale, float w_scale, float h_scale, bool apply_exponential_on_box_size, bool reverse_output_order, bool sigmoid_score, bool flip_vertically)
-        {
-            this->num_classes = num_classes;
-            this->num_boxes = num_boxes;
-            this->num_coords = num_coords;
-            this->keypoint_coord_offset = keypoint_coord_offset;
-            this->num_keypoints = num_keypoints ? num_keypoints : 0;
-            this->num_values_per_keypoint = num_values_per_keypoint ? num_values_per_keypoint : 2;
-            this->box_coord_offset = box_coord_offset ? box_coord_offset : 0;
-            this->x_scale = x_scale ? x_scale : 0.0;
-            this->y_scale = y_scale ? y_scale : 0.0;
-            this->w_scale = w_scale ? w_scale : 0.0;
-            this->h_scale = h_scale ? h_scale : 0.0;
-            this->score_clipping_thresh = score_clipping_thresh;
-            this->min_score_thresh = min_score_thresh;
-            this->apply_exponential_on_box_size = apply_exponential_on_box_size ? apply_exponential_on_box_size : false;
-            this->reverse_output_order = reverse_output_order ? reverse_output_order : false;
-            this->sigmoid_score = sigmoid_score ? sigmoid_score : false;
-            this->flip_vertically = flip_vertically ? flip_vertically : false;
-        }
-
-        std::string to_str()
-        {
-            std::string retstr;
-
-            retstr += "num_classes : " + std::to_string(this->num_classes) + "\n";
-            retstr += "num_boxes : " + std::to_string(this->num_boxes) + "\n";
-            retstr += "num_coords : " + std::to_string(this->num_coords) + "\n";
-            retstr += "keypoint_coord_offset : " + std::to_string(this->keypoint_coord_offset) + "\n";
-            retstr += "num_keypoints : " + std::to_string(this->num_keypoints) + "\n";
-            retstr += "num_values_per_keypoint : " + std::to_string(this->num_values_per_keypoint) + "\n";
-            retstr += "box_coord_offset : " + std::to_string(this->box_coord_offset) + "\n";
-            retstr += "x_scale : " + std::to_string(this->x_scale) + "\n";
-            retstr += "y_scale : " + std::to_string(this->y_scale) + "\n";
-            retstr += "w_scale : " + std::to_string(this->w_scale) + "\n";
-            retstr += "h_scale : " + std::to_string(this->h_scale) + "\n";
-            retstr += "score_clipping_thresh : " + std::to_string(this->score_clipping_thresh) + "\n";
-            retstr += "min_score_thresh : " + std::to_string(this->min_score_thresh) + "\n";
-            retstr += "apply_exponential_on_box_size : " + std::to_string(this->apply_exponential_on_box_size) + "\n";
-            retstr += "reverse_output_order : " + std::to_string(this->reverse_output_order) + "\n";
-            retstr += "sigmoid_score : " + std::to_string(this->sigmoid_score) + "\n";
-            retstr += "flip_vertically : " + std::to_string(this->flip_vertically) + "\n";
-            return retstr;
-        }
-
-        ~TfLiteTensorsToDetectionsCalculatorOptions() {};
+  uint32_t num_classes = 1;
+  uint32_t num_boxes = 896;
+  uint32_t num_coords = 16; // 1 * 4 face box (x1,y1,x2,y2), + 6 * 2 key points = 16
+  uint32_t keypoint_coord_offset = 4; // 1 * 4 face box
+  uint32_t num_keypoints = 6; // eyeL, eyeR, nose, mouth, earL, earR
+  uint32_t num_values_per_keypoint = 2; // x and y
+  uint32_t box_coord_offset; // box is first item
+  float x_scale = 0.0f; // set these to input image size
+  float y_scale = 0.0f;
+  float w_scale = 0.0f;
+  float h_scale = 0.0f;
+  float score_clipping_thresh = 100.0f;
+  float min_score_thresh = 0.75f;
+  bool apply_exponential_on_box_size = false;
+  bool reverse_output_order = false;
+  bool sigmoid_score = false;
+  bool flip_vertically = false;
 };
 
 
-static std::vector<float> lgt_decode_box(std::vector<float> raw_boxes, std::vector<Anchor> anchors, TfLiteTensorsToDetectionsCalculatorOptions options, uint32_t idx)
+static std::vector<float> lgt_decode_box(std::vector<float> raw_boxes, std::vector<Anchor> anchors, const TfLiteTensorsToDetectionsCalculatorOptions& options, uint32_t idx)
 {
     std::vector<float> box_data(options.num_coords, 0.0);
         
@@ -537,7 +422,7 @@ static Detection lgt_convert_to_detection(float box_ymin, float box_xmin, float 
 
 static std::vector<Detection> lgt_convert_to_detections(std::vector<float> raw_boxes, std::vector<Anchor> anchors, 
                           std::vector<float> detection_scores, std::vector<float> detection_classes, 
-                          TfLiteTensorsToDetectionsCalculatorOptions options)
+                          const TfLiteTensorsToDetectionsCalculatorOptions& options)
 {
     std::vector<Detection> output_detections;
 
@@ -554,23 +439,23 @@ static std::vector<Detection> lgt_convert_to_detections(std::vector<float> raw_b
                 box_data[2], box_data[3],
                 detection_scores[i], detection_classes[i], options.flip_vertically);
         
-        detection.rightEyeX = box_data[4 + (int)FaceKeyPoint::RIGHT_EYE * options.num_values_per_keypoint];
-        detection.rightEyeY = box_data[4 + (int)FaceKeyPoint::RIGHT_EYE * options.num_values_per_keypoint + 1];
+        detection.leftEyeX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EYE * options.num_values_per_keypoint];
+        detection.leftEyeY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EYE * options.num_values_per_keypoint + 1];
 
-        detection.leftEyeX = box_data[4 + (int)FaceKeyPoint::LEFT_EYE * options.num_values_per_keypoint];
-        detection.leftEyeY = box_data[4 + (int)FaceKeyPoint::LEFT_EYE * options.num_values_per_keypoint + 1];
+        detection.rightEyeX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EYE * options.num_values_per_keypoint];
+        detection.rightEyeY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EYE * options.num_values_per_keypoint + 1];
 
-        detection.noseTipX = box_data[4 + (int)FaceKeyPoint::NOSE_TIP * options.num_values_per_keypoint];
-        detection.noseTipY = box_data[4 + (int)FaceKeyPoint::NOSE_TIP * options.num_values_per_keypoint + 1];
+        detection.noseTipX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::NOSE_TIP * options.num_values_per_keypoint];
+        detection.noseTipY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::NOSE_TIP * options.num_values_per_keypoint + 1];
 
-        detection.mouthX = box_data[4 + (int)FaceKeyPoint::MOUTH_CENTER * options.num_values_per_keypoint];
-        detection.mouthY = box_data[4 + (int)FaceKeyPoint::MOUTH_CENTER * options.num_values_per_keypoint + 1];
+        detection.mouthX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::MOUTH_CENTER * options.num_values_per_keypoint];
+        detection.mouthY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::MOUTH_CENTER * options.num_values_per_keypoint + 1];
 
-        detection.rightEarX = box_data[4 + (int)FaceKeyPoint::RIGHT_EAR_TRAGION * options.num_values_per_keypoint];
-        detection.rightEarY = box_data[4 + (int)FaceKeyPoint::RIGHT_EAR_TRAGION * options.num_values_per_keypoint + 1];
+        detection.rightEarX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EAR_TRAGION * options.num_values_per_keypoint];
+        detection.rightEarY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EAR_TRAGION * options.num_values_per_keypoint + 1];
 
-        detection.leftEarX = box_data[4 + (int)FaceKeyPoint::LEFT_EAR_TRAGION * options.num_values_per_keypoint];
-        detection.leftEarY = box_data[4 + (int)FaceKeyPoint::LEFT_EAR_TRAGION * options.num_values_per_keypoint + 1];
+        detection.leftEarX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EAR_TRAGION * options.num_values_per_keypoint];
+        detection.leftEarY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EAR_TRAGION * options.num_values_per_keypoint + 1];
 
         output_detections.push_back(detection);
     }
@@ -582,7 +467,7 @@ static std::vector<Detection> lgt_convert_to_detections(std::vector<float> raw_b
  * Postprocessing on CPU for model without postprocessing op. E.g. output
  * raw score tensor and box tensor. Anchor decoding will be handled below.
  */ 
-static std::vector<Detection> lgt_process_cpu(std::vector<float> raw_boxes, std::vector<float> raw_scores, std::vector<Anchor> anchors, TfLiteTensorsToDetectionsCalculatorOptions options)
+static std::vector<Detection> lgt_process_cpu(std::vector<float> raw_boxes, std::vector<float> raw_scores, std::vector<Anchor> anchors, const TfLiteTensorsToDetectionsCalculatorOptions& options)
 {
     std::vector<float> detection_scores(options.num_boxes, 0.0);
     std::vector<float> detection_classes(options.num_boxes, 0.0);
@@ -616,19 +501,6 @@ static std::vector<Detection> lgt_process_cpu(std::vector<float> raw_boxes, std:
         detection_scores[i] = max_score;
         detection_classes[i] = class_id;
     }
-
-    //cout << "--------------------------------" << endl;
-    //cout << "boxes: " << endl;
-    //cout << "(" << raw_boxes.size() << ",)" <<endl;
-    //lgt_print_vec("", raw_boxes);
-    //cout << "--------------------------------" << endl;
-    //cout << "detection_scores: " << endl;
-    //cout << "(" << detection_scores.size() << ",)" <<endl;
-    //lgt_print_vec("", detection_scores);
-    //cout << "--------------------------------" << endl;
-    //cout << "detection_classes: " << endl;
-    //cout << "(" << detection_classes.size() << ",)" <<endl;
-    //lgt_print_vec("", detection_classes);
 
     output_detections = lgt_convert_to_detections(raw_boxes, anchors, detection_scores, 
                                                   detection_classes, options);
@@ -711,19 +583,18 @@ static std::vector<Detection> lgt_orig_nms(std::vector<Detection> detections, fl
 
 }
 
-static std::vector<Anchor> lgt_gen_anchors(SsdAnchorsCalculatorOptions options)
+static std::vector<Anchor> lgt_gen_anchors(const SsdAnchorsCalculatorOptions& options)
 {
     std::vector<Anchor> anchors;
 
     // Verify the options.
-    if (options.strides_size != options.num_layers)
+    if (options.strides.size() != options.num_layers)
     {
-        std::cout << "strides_size and num_layers must be equal." <<std::endl;
-        return anchors;
+      throw std::runtime_error("strides_size and num_layers must be equal.");
     }
 
     uint32_t layer_id = 0;
-    while (layer_id < options.strides_size)
+    while (layer_id < options.strides.size())
     {
         std::vector<float> anchor_height;
         std::vector<float> anchor_width;
@@ -732,9 +603,9 @@ static std::vector<Anchor> lgt_gen_anchors(SsdAnchorsCalculatorOptions options)
 
         // For same strides, we merge the anchors in the same order.
         uint32_t last_same_stride_layer = layer_id;
-        while (last_same_stride_layer < options.strides_size && options.strides[last_same_stride_layer] == options.strides[layer_id])
+        while (last_same_stride_layer < options.strides.size() && options.strides[last_same_stride_layer] == options.strides[layer_id])
         {
-            float scale = options.min_scale + (options.max_scale - options.min_scale) * 1.0 * last_same_stride_layer / (options.strides_size - 1.0);
+            float scale = options.min_scale + (options.max_scale - options.min_scale) * 1.0 * last_same_stride_layer / (options.strides.size() - 1.0);
             if (last_same_stride_layer == 0 && options.reduce_boxes_in_lowest_layer)
             {
                 // For first layer, it can be specified to use predefined anchors.
@@ -747,7 +618,7 @@ static std::vector<Anchor> lgt_gen_anchors(SsdAnchorsCalculatorOptions options)
             }
             else
             {
-                for (size_t aspect_ratio_id = 0; aspect_ratio_id < options.aspect_ratios_size; aspect_ratio_id++)
+                for (size_t aspect_ratio_id = 0; aspect_ratio_id < options.aspect_ratios.size(); aspect_ratio_id++)
                 {
                     aspect_ratios.push_back(options.aspect_ratios[aspect_ratio_id]);
                     scales.push_back(scale);
@@ -755,7 +626,7 @@ static std::vector<Anchor> lgt_gen_anchors(SsdAnchorsCalculatorOptions options)
 
                 if (options.interpolated_scale_aspect_ratio > 0.0)
                 {
-                    float scale_next = (last_same_stride_layer == options.strides_size - 1) ? 1.0 : (options.min_scale + (options.max_scale - options.min_scale) * 1.0 * (last_same_stride_layer + 1) / (options.strides_size - 1.0));
+                    float scale_next = (last_same_stride_layer == options.strides.size() - 1) ? 1.0 : (options.min_scale + (options.max_scale - options.min_scale) * 1.0 * (last_same_stride_layer + 1) / (options.strides.size() - 1.0));
                     scales.push_back(sqrt(scale * scale_next));
                     aspect_ratios.push_back(options.interpolated_scale_aspect_ratio);
                 }
@@ -770,19 +641,9 @@ static std::vector<Anchor> lgt_gen_anchors(SsdAnchorsCalculatorOptions options)
             anchor_width.push_back(scales[i] * ratio_sqrts);
         }
 
-        uint32_t feature_map_height = 0;
-        uint32_t feature_map_width = 0;
-        if (options.feature_map_height_size > 0)
-        {
-            feature_map_height = options.feature_map_height[layer_id];
-            feature_map_width = options.feature_map_width[layer_id];
-        }
-        else
-        {
-            uint32_t stride = options.strides[layer_id];
-            feature_map_height = ceil(1.0 * options.input_size_height / stride);
-            feature_map_width = ceil(1.0 * options.input_size_width / stride);
-        }
+        uint32_t stride = options.strides[layer_id];
+        uint32_t feature_map_height = ceil(1.0 * options.input_size_height / stride);
+        uint32_t feature_map_width = ceil(1.0 * options.input_size_width / stride);
 
         for (size_t y = 0; y < feature_map_height; y++)
         {
@@ -824,10 +685,10 @@ public:
     int num_layers;
     int input_size_height;
     int input_size_width;
-    double anchor_offset_x;
-    double anchor_offset_y;
+    float anchor_offset_x;
+    float anchor_offset_y;
     std::vector<int> strides;
-    double interpolated_scale_aspect_ratio;
+    float interpolated_scale_aspect_ratio;
   };
 
   struct ModelConfig
@@ -855,34 +716,42 @@ public:
   //         this model is up ~30% faster than `FULL` when run on the CPU
   const static ModelConfig FullSparseModel;
 
-  struct Box
-  {
-    float x_center;
-    float y_center;
-    float h;
-    float w;
-  };
-
-  struct Result
-  {
-    Box face;
-    Box leftEye;
-    Box rightEye;
-    Box noseTip;
-    Box mouth;
-    Box leftTragion;
-    Box rightTragion;
-  };
-
   FaceDetector(const ModelConfig& modelConfig) 
     : modelConfig_(modelConfig) 
-    , ssd_anchors_calculator_options(128, 128, 0.1484375, 0.75, 0.5, 0.5, 1.0, false, true, 4)
-    , options(1, 896, 16, 4, 100.0, 0.75, 6, 2, 0, 128.0, 128.0, 128.0, 128.0, false, true, true, false)
+    , ssd_anchors_calculator_options {
+        input_size_width: (uint16_t) modelConfig.options.input_size_width,
+        input_size_height: (uint16_t) modelConfig.options.input_size_height,
+        min_scale : 0.1484375f,
+        max_scale : 0.75f,
+        anchor_offset_x: modelConfig.options.anchor_offset_x,
+        anchor_offset_y: modelConfig.options.anchor_offset_y,
+        interpolated_scale_aspect_ratio : modelConfig.options.interpolated_scale_aspect_ratio,
+        reduce_boxes_in_lowest_layer : false,
+        fixed_anchor_size : true,
+        strides: modelConfig.options.strides,
+        num_layers: (uint8_t)modelConfig.options.num_layers 
+    }
+    , options { 
+        num_classes: 1,
+        num_boxes: 896,
+        num_coords: 16, 
+        keypoint_coord_offset: 4,
+        num_keypoints: 6, 
+        num_values_per_keypoint: 2, 
+        box_coord_offset: 0, 
+        x_scale: (float)modelConfig.options.input_size_width, 
+        y_scale: (float)modelConfig.options.input_size_height, 
+        w_scale: (float)modelConfig.options.input_size_width, 
+        h_scale: (float)modelConfig.options.input_size_height, 
+        score_clipping_thresh: 100.0, 
+        min_score_thresh: 0.75, 
+        apply_exponential_on_box_size: false, 
+        reverse_output_order: true,
+        sigmoid_score: true,
+        flip_vertically: false 
+    }
     , anchors(lgt_gen_anchors(ssd_anchors_calculator_options))
   {
-    // Construct options
-
-
     // Load the model
     model_ = tflite::FlatBufferModel::BuildFromFile(modelConfig_.name);
     if (model_ == nullptr) throw std::runtime_error("Unable to load model!");
@@ -900,23 +769,19 @@ public:
   template <typename Color> 
   std::vector<Detection> Detect(const Image<Color>& image)
   {
-    // Convert the input image to RGB24 and scale to the right size...
-    Image<RGB24> inputImage;
-    if constexpr(std::is_same_v<Color, RGB24>)
+    PROFILE_FUNCTION;
+
+    if (image.width() != (size_t)modelConfig_.options.input_size_width && 
+        image.height() != (size_t)modelConfig_.options.input_size_height)
     {
-      image.scale(inputImage, modelConfig_.options.input_size_width, modelConfig_.options.input_size_height, {scaleMode : ScaleMode::Fit});
-    }
-    else
-    {
-      inputImage = image.template convert<RGB24>();
-      inputImage.scale(modelConfig_.options.input_size_width, modelConfig_.options.input_size_height, {scaleMode : ScaleMode::Fit});
+      throw std::runtime_error("Input image is wrong size!");
     }
 
     // Copy the scaled image into input tensor, converting to its weird floating point format
     int input = interpreter_->inputs()[0];
     TfLiteTensor* input_tensor = interpreter_->tensor(input);
     RGB3f<-1.0f, 1.0f>* dst = (RGB3f<-1.0f, 1.0f>*)input_tensor->data.f;
-    RGB24* src = inputImage.pixel();
+    const Color* src = image.pixel();
     size_t size = (size_t)modelConfig_.options.input_size_width * (size_t)modelConfig_.options.input_size_height;
     for (size_t i = 0; i < size; ++i)
     {
@@ -954,6 +819,16 @@ public:
     return detections;
   }
 
+  size_t inputImageWidth() const
+  {
+    return modelConfig_.options.input_size_width;
+  }
+  
+  size_t inputImageHeight() const
+  {
+    return modelConfig_.options.input_size_height;
+  }
+
 private:
   ModelConfig modelConfig_;
   std::unique_ptr<tflite::FlatBufferModel> model_;
@@ -971,14 +846,13 @@ const FaceDetector::ModelConfig FaceDetector::FrontModel =
     num_layers : 4,
     input_size_height : 128,
     input_size_width : 128,
-    anchor_offset_x : 0.5,
-    anchor_offset_y : 0.5,
+    anchor_offset_x : 0.5f,
+    anchor_offset_y : 0.5f,
     strides : {8, 16, 16, 16},
-    interpolated_scale_aspect_ratio: 1.0
+    interpolated_scale_aspect_ratio: 1.0f
   }
 };
 
-  // 256x256 image, not mirrored
 const FaceDetector::ModelConfig FaceDetector::BackModel =
 {
   name : "models/face_detection_back.tflite",
@@ -987,15 +861,13 @@ const FaceDetector::ModelConfig FaceDetector::BackModel =
       num_layers: 4,
       input_size_height: 256,
       input_size_width: 256,
-      anchor_offset_x: 0.5,
-      anchor_offset_y: 0.5,
+      anchor_offset_x: 0.5f,
+      anchor_offset_y: 0.5f,
       strides: {16, 32, 32, 32},
-      interpolated_scale_aspect_ratio: 1.0
+      interpolated_scale_aspect_ratio: 1.0f
   }
 };
 
-  // 128x128 image, assumed to be mirrored; best for short range images
-  //         (i.e. faces within 2 metres from the camera)
 const FaceDetector::ModelConfig FaceDetector::ShortModel =
 {
   name : "models/face_detection_short_range.tflite",
@@ -1004,15 +876,13 @@ const FaceDetector::ModelConfig FaceDetector::ShortModel =
     num_layers: 4,
     input_size_height: 128,
     input_size_width: 128,
-    anchor_offset_x: 0.5,
-    anchor_offset_y: 0.5,
+    anchor_offset_x: 0.5f,
+    anchor_offset_y: 0.5f,
     strides: {8, 16, 16, 16},
-    interpolated_scale_aspect_ratio: 1.0
+    interpolated_scale_aspect_ratio: 1.0f
   }
 };
 
-  // 192x192 image, assumed to be mirrored; dense; best for mid-ranges
-  //        (i.e. faces within 5 metres from the camera)
 const FaceDetector::ModelConfig FaceDetector::FullModel =
 {
   name : "models/face_detection_full_range.tflite",
@@ -1021,16 +891,13 @@ const FaceDetector::ModelConfig FaceDetector::FullModel =
     num_layers: 1,
     input_size_height: 192,
     input_size_width: 192,
-    anchor_offset_x: 0.5,
-    anchor_offset_y: 0.5,
+    anchor_offset_x: 0.5f,
+    anchor_offset_y: 0.5f,
     strides: {4},
-    interpolated_scale_aspect_ratio: 0.0
+    interpolated_scale_aspect_ratio: 0.0f
   }
 };
 
-  // 192x192 image, assumed to be mirrored; sparse; best for
-  //         mid-ranges (i.e. faces within 5 metres from the camera)
-  //         this model is up ~30% faster than `FULL` when run on the CPU
 const FaceDetector::ModelConfig FaceDetector::FullSparseModel =
 {
   name : "models/face_detection_full_range_sparse.tflite",
@@ -1039,9 +906,9 @@ const FaceDetector::ModelConfig FaceDetector::FullSparseModel =
     num_layers: 1,
     input_size_height: 192,
     input_size_width: 192,
-    anchor_offset_x: 0.5,
-    anchor_offset_y: 0.5,
+    anchor_offset_x: 0.5f,
+    anchor_offset_y: 0.5f,
     strides: {4},
-    interpolated_scale_aspect_ratio: 0.0
+    interpolated_scale_aspect_ratio: 0.0f
   }
 };

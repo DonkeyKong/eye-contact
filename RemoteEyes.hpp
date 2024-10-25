@@ -144,17 +144,19 @@ public:
 class RemoteEyes
 {
 public:
-  RemoteEyes() : serial(PI_PICO_SERIAL_DEVICE, PI_PICO_SERIAL_BAUD_RATE)
+  RemoteEyes() : serial_(PI_PICO_SERIAL_DEVICE, PI_PICO_SERIAL_BAUD_RATE)
   {
-    serial.write("echo 0\n");
-    serial.write("en 0\n");
+    serial_.write("echo 0\n"); // turn off echo to speed up comms
+    serial_.write("en 0\n"); // turn off nunchuck input
+    serial_.write("style 2\n"); // turn the eyes red
+    serial_.write("dir 0 0\n"); // look straight ahead
   }
 
   void look(float yaw, float pitch)
   {
-    serial.write(fmt::format("dir {} {}\n", yaw, pitch));
+    serial_.write(fmt::format("dir {} {}\n", yaw, pitch));
   };
 private:
-  SerialDevice serial;
+  SerialDevice serial_;
 
 };

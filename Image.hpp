@@ -2,6 +2,7 @@
 
 #include "Color.hpp"
 #include "BoundingBox.hpp"
+#include "FunctionTimer.hpp"
 
 #include <base_resample.h>
 
@@ -260,6 +261,8 @@ public:
 
     void scale(Image<Color> &dest, int width, int height, ScaleSettings settings) const
     {
+      PROFILE_FUNCTION;
+
       bool inPlace = (&dest == this);
 
       float xScale = (float)width / (float)width_;
@@ -368,21 +371,28 @@ public:
     }
 
     template <typename DestColor>
-    Image<DestColor> convert() const
+    void convert(Image<DestColor> dest) const
     {
-      std::vector<uint8_t> destData;
+      PROFILE_FUNCTION;
 
-      // Image is the correct format already!
-      // Just copy the data as-is
       if constexpr(std::is_same_v<DestColor,Color>)
       {
-        destData = data_;
+        // Image is the correct format already!
+        // Just copy the data as-is
+        dest.data_ = data_;
       }
       else
       {
+        // Resize dest if needed
         size_t count = width_ * height_;
-        destData.resize(sizeof(DestColor) * count);
-        DestColor* destPtr = (DestColor*) destData.data();
+        if (dest.data_.size() != count * sizeof(DestColor))
+        {
+          dest.data_.resize(count * sizeof(DestColor));
+        }
+        
+        // Copy data pixel by pixel, using the copy constructors of
+        // the colors to handle colorspace conversion.
+        auto destPtr = dest.pixel();
         auto srcPtr = pixel();
         for (size_t i = 0; i < count; ++i)
         {
@@ -390,18 +400,24 @@ public:
         }
       }
 
-      // Construct the destination image
-      Image<DestColor> dest;
+      // Set the dest image dims
       dest.width_ = width_;
       dest.height_ = height_;
-      dest.data_ = std::move(destData);
+    }
 
+    template <typename DestColor>
+    Image<DestColor> convert() const
+    {
+      Image<DestColor> dest;
+      convert(dest);
       return dest;
     }
 
     template <typename DestColor>
     Image<DestColor> moveConvert()
     {
+      PROFILE_FUNCTION;
+      
       std::vector<uint8_t> destData;
 
       // Image is the correct format already!

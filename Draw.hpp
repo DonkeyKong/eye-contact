@@ -3,38 +3,66 @@
 #include "Image.hpp"
 #include <algorithm>
 
-template <typename Color>
-void DrawLine(Image<Color>& img, float x1, float y1, float x2, float y2, float strokeWeight, Color color)
+enum class BlendMode
 {
-  int minX = std::clamp(std::min((int)(x1-strokeWeight), (int)(x2-strokeWeight)), 0, img.width());
-  int minY = std::clamp(std::min((int)(y1-strokeWeight), (int)(y2-strokeWeight)), 0, img.height());
-  int maxX = std::clamp(std::max((int)std::ceil(x1+strokeWeight), (int)std::ceil(x2+strokeWeight)), 0, img.width());
-  int maxY = std::clamp(std::max((int)std::ceil(y1+strokeWeight), (int)std::ceil(y2+strokeWeight)), 0, img.height());
+  Overwrite,
+  Multiply,
+  Add
+};
 
-  float a = y2-y1;
-  float b = x2-x1;
-  float c = x2*y1-y2*x1;
-  float d = std::sqrt(a*a + b*b);
-  float strokeHalf = strokeWeight / 2.0f;
+template <typename Color>
+void FillRect(Image<Color>& img, float originX, float originY, float width, float height, Color color, BlendMode blend = BlendMode::Overwrite)
+{
+  int minX = std::clamp((int)std::round(originX), 0, img.width());
+  int minY = std::clamp((int)std::round(originY), 0, img.height());
+  int maxX = std::clamp((int)std::round(originX+width), 0, img.width());
+  int maxY = std::clamp((int)std::round(originY+height), 0, img.height());
+
   Color* px = img.pixel();
-  for (int y = minY; y < maxY; ++y)
+
+  if (blend == BlendMode::Overwrite)
   {
-    for (int x = minX; x < maxX; ++x)
+    for (int y = minY; y < maxY; ++y)
     {
-      float dist = std::abs(a*(float)x - b*(float)y + c) / d;
-      if (dist < strokeHalf)
+      for (int x = minX; x < maxX; ++x)
       {
         px[x+y*img.width()] = color;
+      }
+    }
+  }
+  else if (blend == BlendMode::Add)
+  {
+    for (int y = minY; y < maxY; ++y)
+    {
+      for (int x = minX; x < maxX; ++x)
+      {
+        px[x+y*img.width()] += color;
+      }
+    }
+  }
+  else if (blend == BlendMode::Multiply)
+  {
+    for (int y = minY; y < maxY; ++y)
+    {
+      for (int x = minX; x < maxX; ++x)
+      {
+        px[x+y*img.width()] *= color;
       }
     }
   }
 }
 
 template <typename Color>
-void DrawRect(Image<Color>& img, float x, float y, float width, float height, float strokeWeight, Color color)
+void DrawRect(Image<Color>& img, float originX, float originY, float width, float height, float strokeWeight, Color color, BlendMode blend = BlendMode::Overwrite)
 {
-  DrawLine(img, x, y, x + width, y, strokeWeight, color);
-  DrawLine(img, x + width, y, x + width, y + height, strokeWeight, color);
-  DrawLine(img, x + width, y + height, x, y + height, strokeWeight, color);
-  DrawLine(img, x, y + height, x, y, strokeWeight, color);
+  FillRect(img, originX, originY, width, strokeWeight, color, blend); // top
+  FillRect(img, originX, originY+height-strokeWeight, width, strokeWeight, color, blend); // bottom
+  FillRect(img, originX, originY, strokeWeight, height , color, blend); // left
+  FillRect(img, originX+width-strokeWeight, originY, strokeWeight, height , color, blend); // right
+}
+
+template <typename Color>
+void DrawPoint(Image<Color>& img, float x, float y, float sizePx, Color color, BlendMode blend = BlendMode::Overwrite)
+{
+  FillRect(img, x - sizePx / 2.0f, y - sizePx / 2.0f, sizePx, sizePx, color, blend);
 }

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
 
 struct RGB24;
 struct RGBA32;
@@ -25,6 +26,38 @@ struct RGB24
   RGB24(const Gray8& color);
   RGB24(const Lab3f& color);
   RGB24(const YUV24& color);
+
+  RGB24 operator+ (const RGB24& c)  const
+  {
+    return {
+      (uint8_t)std::clamp((int)R + (int)c.R, 0, 255),
+      (uint8_t)std::clamp((int)G + (int)c.G, 0, 255),
+      (uint8_t)std::clamp((int)B + (int)c.B, 0, 255)
+    };
+  }
+
+  RGB24 operator* (const RGB24& c)  const
+  {
+    return {
+      (uint8_t)std::clamp((int)R * (int)c.R / 255, 0, 255),
+      (uint8_t)std::clamp((int)G * (int)c.G / 255, 0, 255),
+      (uint8_t)std::clamp((int)B * (int)c.B / 255, 0, 255)
+    };
+  }
+
+  void operator+= (const RGB24& c)
+  {
+    R = (uint8_t)std::clamp((int)R + (int)c.R, 0, 255);
+    G = (uint8_t)std::clamp((int)G + (int)c.G, 0, 255);
+    B = (uint8_t)std::clamp((int)B + (int)c.B, 0, 255);
+  }
+
+  void operator*= (const RGB24& c)
+  {
+    R = (uint8_t)std::clamp((int)R * (int)c.R / 255, 0, 255);
+    G = (uint8_t)std::clamp((int)G * (int)c.G / 255, 0, 255);
+    B = (uint8_t)std::clamp((int)B * (int)c.B / 255, 0, 255);
+  }
 };
 
 struct RGBA32 : public RGB24
@@ -38,6 +71,42 @@ struct RGBA32 : public RGB24
   RGBA32(const HSV3f& color);
   RGBA32(const Gray8& color);
   RGBA32(const Lab3f& color);
+
+  RGBA32 operator+ (const RGBA32& c)  const
+  {
+    return {
+      (uint8_t)std::clamp((int)R + (int)c.R, 0, 255),
+      (uint8_t)std::clamp((int)G + (int)c.G, 0, 255),
+      (uint8_t)std::clamp((int)B + (int)c.B, 0, 255),
+      (uint8_t)std::clamp(((int)A + (int)c.A) / 2, 0, 255),
+    };
+  }
+
+  RGBA32 operator* (const RGBA32& c)  const
+  {
+    return {
+      (uint8_t)std::clamp((int)R * (int)c.R / 255, 0, 255),
+      (uint8_t)std::clamp((int)G * (int)c.G / 255, 0, 255),
+      (uint8_t)std::clamp((int)B * (int)c.B / 255, 0, 255),
+      (uint8_t)std::clamp((int)A * (int)c.A / 255, 0, 255),
+    };
+  }
+
+  void operator+= (const RGBA32& c)
+  {
+    R = (uint8_t)std::clamp((int)R + (int)c.R, 0, 255);
+    G = (uint8_t)std::clamp((int)G + (int)c.G, 0, 255);
+    B = (uint8_t)std::clamp((int)B + (int)c.B, 0, 255);
+    A = (uint8_t)std::clamp(((int)A + (int)c.A) / 2, 0, 255);
+  }
+
+  void operator*= (const RGBA32& c)
+  {
+    R = (uint8_t)std::clamp((int)R * (int)c.R / 255, 0, 255);
+    G = (uint8_t)std::clamp((int)G * (int)c.G / 255, 0, 255);
+    B = (uint8_t)std::clamp((int)B * (int)c.B / 255, 0, 255);
+    A = (uint8_t)std::clamp((int)A * (int)c.A / 255, 0, 255);
+  }
 };
 
 struct Gray8
@@ -51,6 +120,30 @@ struct Gray8
   Gray8(const Lab3f& color);
   Gray8(const HSV3f& color);
   Gray8(const YUV24& color);
+
+  Gray8 operator+ (const Gray8& c)  const
+  {
+    return {
+      (uint8_t)std::clamp((int)I + (int)c.I, 0, 255)
+    };
+  }
+
+  Gray8 operator* (const Gray8& c)  const
+  {
+    return {
+      (uint8_t)std::clamp((int)I * (int)c.I / 255, 0, 255)
+    };
+  }
+
+  void operator+= (const Gray8& c)
+  {
+    I = (uint8_t)std::clamp((int)I + (int)c.I, 0, 255);
+  }
+
+  void operator*= (const Gray8& c)
+  {
+    I = (uint8_t)std::clamp((int)I * (int)c.I / 255, 0, 255);
+  }
 };
 
 struct HSV3f
