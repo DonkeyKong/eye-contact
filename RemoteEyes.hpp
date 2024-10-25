@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MovingAverage.hpp"
+
 // C++ headers
 #include <string>
 #include <stdexcept>
@@ -163,9 +165,10 @@ public:
 
   void look(float yaw, float pitch)
   {
-    serial_.write(fmt::format("dir {} {}\n", yaw, pitch));
+    yaw_.update(yaw); pitch_.update(pitch);
+    serial_.write(fmt::format("dir {} {}\n", yaw_.val(), pitch_.val()));
   };
 private:
   SerialDevice serial_;
-
+  MovingAverage<float, 3> yaw_, pitch_;
 };
