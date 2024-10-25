@@ -13,6 +13,13 @@ add_executable( ${PROJECT_NAME}
   ImageIO.cpp
 )
 
+target_compile_definitions( ${PROJECT_NAME} PRIVATE
+  #DEBUG_SAVE_IMAGE
+  #DEBUG_PROFILE_FUNCTIONS
+  DEBUG_SHOW_FPS
+  #DEBUG_DISABLE_SERIAL
+)
+
 target_link_libraries(${PROJECT_NAME} broadcom_host
                                       fmt
                                       json 

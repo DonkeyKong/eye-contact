@@ -1,7 +1,3 @@
-//#define DEBUG_SAVE_IMAGE
-//#define DEBUG_PROFILE_FUNCTIONS
-//#define DEBUG_SHOW_FPS
-
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -93,11 +89,11 @@ int main(int argc, char *argv[])
     std::cout << "Preparing to make eye contact...\n";
 
     std::cout << "Setting up camera...\n";
-    Camera cam("/dev/video0", 1920, 1920, 3);
+    Camera cam("/dev/video0", 320, 240, 3);
     Image<RGB24> rawImage, scaledImage, detectImage;
     std::cout << "Capturing at " << cam.width() << " x " << cam.height() << "\n";
 
-    FaceDetector detector(FaceDetector::BackModel);
+    FaceDetector detector(FaceDetector::FrontModel);
     RemoteEyes eyes;
     FPSCounter fpsCounter;
     
@@ -112,7 +108,7 @@ int main(int argc, char *argv[])
 
       if (detectImage.dataSizeBytes() > 0)
       {
-        auto results = detector.Detect(detectImage);
+        auto results = detector.detect(detectImage);
         if (results.size() > 0)
         {
           eyes.look((results[0].leftEyeX - 0.5f) * -140.0f,

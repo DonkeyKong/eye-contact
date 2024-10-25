@@ -1,8 +1,10 @@
 #include "V4LCamera.hpp"
+#include "FunctionTimer.hpp"
 
 #include <regex>
 #include <chrono>
 #include <filesystem>
+#include <map>
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -65,6 +67,58 @@ Frame::~Frame()
   }
 }
 
+static void printV4L2Info(const v4l2_format& format)
+{
+  if (format.type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+  {
+    std::cout << "Unsupported format type\n";
+    return;
+  }
+  
+  std::string_view formatCode((char*)&format.fmt.pix.pixelformat, 4);
+  std::cout << formatCode << " " << format.fmt.pix.width << "x" << format.fmt.pix.height << "\n";
+}
+
+static void printV4L2Info(const v4l2_frmsizeenum& format)
+{
+  std::string_view formatCode((char*)&format.pixel_format, 4);
+  if (format.type == V4L2_FRMSIZE_TYPE_DISCRETE)
+  {
+    std::cout << formatCode << " " << format.discrete.width << "x" << format.discrete.height << " (fixed)\n";
+  }
+  else if (format.type == V4L2_FRMSIZE_TYPE_STEPWISE)
+  {
+    std::cout << formatCode << " " << format.stepwise.min_width << "x" << format.stepwise.min_height
+              << " to " << format.stepwise.max_width << "x" << format.stepwise.max_height 
+              << " (" << format.stepwise.step_width << " , " << format.stepwise.step_height << " step)" << "\n";
+  }
+  else if (format.type == V4L2_FRMSIZE_TYPE_CONTINUOUS)
+  {
+    std::cout << formatCode << " " << format.stepwise.min_width << "x" << format.stepwise.min_height
+          << " to " << format.stepwise.max_width << "x" << format.stepwise.max_height 
+          << " (continuous)" << "\n";
+  }
+}
+
+static void printV4L2Info(const v4l2_frmivalenum& interval)
+{
+  if (interval.type == V4L2_FRMIVAL_TYPE_DISCRETE)
+  {
+    std::cout << "\t" << (float)interval.discrete.denominator / (float)interval.discrete.numerator << " FPS (fixed)\n";
+  }
+  else if (interval.type == V4L2_FRMIVAL_TYPE_STEPWISE)
+  {
+    std::cout << "\t" << (float)interval.stepwise.min.denominator / (float)interval.stepwise.min.numerator << " - "
+              << (float)interval.stepwise.max.denominator / (float)interval.stepwise.max.numerator << " FPS ( " 
+              << (float)interval.stepwise.step.denominator / (float)interval.stepwise.step.numerator << " step)\n";
+  }
+  else if (interval.type == V4L2_FRMIVAL_TYPE_CONTINUOUS)
+  {
+    std::cout << "\t" << (float)interval.stepwise.min.denominator / (float)interval.stepwise.min.numerator << " - "
+              << (float)interval.stepwise.max.denominator / (float)interval.stepwise.max.numerator << " FPS (continuous)\n";
+  }
+}
+
 Camera::Camera(std::string devicePath, int requestedWidth, int requestedHeight, size_t bufferCount) :  devicePath_(std::move(devicePath))
 {
   // Open the device file
@@ -74,32 +128,62 @@ Camera::Camera(std::string devicePath, int requestedWidth, int requestedHeight, 
     throw std::runtime_error("Cannot create camera: file descriptor did not open");
   }
 
-  v4l2_fmtdesc fmtdesc = {0};
-  fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-  // Get the format with the largest index and use it
-  std::cout << "Formats available: ";
+  // Get the formats and resolutions supported...
+  std::cout << "Available video formats:\n";
+  v4l2_fmtdesc fmtdesc = 
+  {
+    index: 0,
+    type: V4L2_BUF_TYPE_VIDEO_CAPTURE
+  };
   while(0 == xioctl(fd_, VIDIOC_ENUM_FMT, &fmtdesc)) 
   {
+    v4l2_frmsizeenum frmsize 
+    {
+      index: 0,
+      pixel_format: fmtdesc.pixelformat
+    };
+    while (ioctl(fd_, VIDIOC_ENUM_FRAMESIZES, &frmsize) >= 0) 
+    {
+      printV4L2Info(frmsize);
+      frmsize.index++;
+
+      v4l2_frmivalenum frmival
+      {
+        index : 0,		/* Frame format index */
+        pixel_format: frmsize.pixel_format, /* Pixel format */
+        width: frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE ? frmsize.discrete.width : frmsize.stepwise.max_width,
+        height: frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE ? frmsize.discrete.height : frmsize.stepwise.max_height
+      };
+      while (ioctl(fd_, VIDIOC_ENUM_FRAMEINTERVALS, &frmival) >= 0) 
+      {
+        printV4L2Info(frmival);
+        frmival.index++;
+      }
+    }
     fmtdesc.index++;
-    
-    std::string_view formatCode((char*)&fmtdesc.pixelformat, 4);
-    std::cout << formatCode << " ";
   }
-  printf("\nUsing format: %s\n", fmtdesc.description);
-  
-  v4l2_format fmt = {};
-  fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  fmt.fmt.pix.width = requestedWidth;
-  fmt.fmt.pix.height = requestedHeight;
-  fmt.fmt.pix.pixelformat = fmtdesc.pixelformat;
-  fmt.fmt.pix.field = V4L2_FIELD_NONE;
+
+  v4l2_format fmt = 
+  {
+    type: V4L2_BUF_TYPE_VIDEO_CAPTURE,
+    fmt: {
+      pix: {
+        width: (uint32_t)requestedWidth,
+        height: (uint32_t)requestedHeight,
+        pixelformat: fmtdesc.pixelformat,
+        field: V4L2_FIELD_NONE,
+      }
+    }
+  };
 
   if (-1 == xioctl(fd_, VIDIOC_S_FMT, &fmt)) 
   {
     perror("VIDIOC_S_FMT");
     throw std::runtime_error("Could not get format.");
   }
+
+  std::cout << "Using format: ";
+  printV4L2Info(fmt);
 
   width_ = fmt.fmt.pix.width;
   height_ = fmt.fmt.pix.height;
@@ -195,6 +279,8 @@ Camera::~Camera()
 
 Frame Camera::getFrame()
 {
+  PROFILE_FUNCTION;
+  
   v4l2_buffer buffer = {};
   buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   buffer.memory = V4L2_MEMORY_MMAP;

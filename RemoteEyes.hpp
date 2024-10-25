@@ -33,6 +33,10 @@ public:
   // Is always [baud]-1-N style connection
   SerialDevice(const std::string& devicePath, speed_t baudRate)
   {
+  #ifdef DEBUG_DISABLE_SERIAL
+    return;
+  #endif
+  
     // Thanks to this tutorial for greatly speeding up my implementation
     // https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
 
@@ -101,7 +105,10 @@ public:
 
   void write(const std::string_view& data)
   {
-    ::write(fd, data.data(), data.size());
+    if (fd >= 0)
+    {
+      ::write(fd, data.data(), data.size());
+    }
   }
 
   // std::string readLine(std::chrono::milliseconds timeout)
@@ -140,6 +147,8 @@ public:
   //     } while (std::chrono::steady_clock::now() < timeoutTime);
    //}
 };
+
+// Eye action needs smoothing out!
 
 class RemoteEyes
 {

@@ -5,9 +5,11 @@
 #include <iostream>
 
 #ifdef DEBUG_PROFILE_FUNCTIONS
-#define PROFILE_FUNCTION FunctionTimer funcprof(__func__)
+#define PROFILE_FUNCTION FunctionTimer func##_prof(__func__)
+#define PROFILE(msg) FunctionTimer msg##_prof(#msg)
 #else
 #define PROFILE_FUNCTION do { } while(0)
+#define PROFILE(msg) do { } while(0)
 #endif
 
 class FunctionTimer

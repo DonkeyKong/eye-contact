@@ -105,13 +105,15 @@ private:
  */ 
 static std::vector<float> lgt_sort_vec(std::vector<float> const &a, std::vector<int> indices)
 {
-    std::vector<float> retVec;
+  PROFILE_FUNCTION;
+  
+  std::vector<float> retVec;
 
-    for (auto i : indices)
-    {
-        retVec.push_back(a.at(i));
-    }
-    return retVec;
+  for (auto i : indices)
+  {
+      retVec.push_back(a.at(i));
+  }
+  return retVec;
 }
 
 /*
@@ -126,11 +128,13 @@ static std::vector<float> lgt_sort_vec(std::vector<float> const &a, std::vector<
 template<typename T>
 static std::vector<T> lgt_slice(std::vector<T> const &v, int m, int n)
 {
-    auto first = v.cbegin() + m;
-    auto last = v.cbegin() + n;
+  PROFILE_FUNCTION;
 
-    std::vector<T> vec(first, last);
-    return vec;
+  auto first = v.cbegin() + m;
+  auto last = v.cbegin() + n;
+
+  std::vector<T> vec(first, last);
+  return vec;
 }
 
 /*
@@ -138,25 +142,27 @@ static std::vector<T> lgt_slice(std::vector<T> const &v, int m, int n)
  */ 
 static std::vector<float> lgt_vec_maximum(std::vector<float> const &a, std::vector<int> indices)
 {
-    float compare = 0.0;
-    std::vector<float> retVec;
+  PROFILE_FUNCTION;
 
-    if (!indices.empty())
-    {
-        compare = a.at(indices.back());
-        std::vector<int> indicesSlice = lgt_slice(indices, 0, indices.size()-1);
-        retVec = lgt_sort_vec(a, indicesSlice);
-    }
-    else
-    {
-        retVec = a;
-    }
+  float compare = 0.0;
+  std::vector<float> retVec;
 
-    for(int i = 0; i < retVec.size(); i++)
-    {
-        retVec.at(i) = retVec.at(i) > compare ? retVec.at(i) : compare;
-    }
-    return retVec;
+  if (!indices.empty())
+  {
+      compare = a.at(indices.back());
+      std::vector<int> indicesSlice = lgt_slice(indices, 0, indices.size()-1);
+      retVec = lgt_sort_vec(a, indicesSlice);
+  }
+  else
+  {
+      retVec = a;
+  }
+
+  for(int i = 0; i < retVec.size(); i++)
+  {
+      retVec.at(i) = retVec.at(i) > compare ? retVec.at(i) : compare;
+  }
+  return retVec;
 }
 
 
@@ -165,25 +171,27 @@ static std::vector<float> lgt_vec_maximum(std::vector<float> const &a, std::vect
  */ 
 static std::vector<float> lgt_vec_minimum(std::vector<float> const &a, std::vector<int> indices)
 {
-    float compare = 0.0;
-    std::vector<float> retVec;
+  PROFILE_FUNCTION;
 
-    if (!indices.empty())
-    {
-        compare = a.at(indices.back());
-        std::vector<int> indicesSlice = lgt_slice(indices, 0, indices.size()-1);
-        retVec = lgt_sort_vec(a, indicesSlice);
-    }
-    else
-    {
-        retVec = a;
-    }
+  float compare = 0.0;
+  std::vector<float> retVec;
 
-    for(int i = 0; i < retVec.size(); i++)
-    {
-        retVec.at(i) = retVec.at(i) < compare ? retVec.at(i) : compare;
-    }
-    return retVec;
+  if (!indices.empty())
+  {
+      compare = a.at(indices.back());
+      std::vector<int> indicesSlice = lgt_slice(indices, 0, indices.size()-1);
+      retVec = lgt_sort_vec(a, indicesSlice);
+  }
+  else
+  {
+      retVec = a;
+  }
+
+  for(int i = 0; i < retVec.size(); i++)
+  {
+      retVec.at(i) = retVec.at(i) < compare ? retVec.at(i) : compare;
+  }
+  return retVec;
 }
 
 
@@ -192,17 +200,19 @@ static std::vector<float> lgt_vec_minimum(std::vector<float> const &a, std::vect
  */ 
 static std::vector<float> lgt_iou(std::vector<float> const &a, std::vector<float> const &inter, std::vector<int> indices)
 {
-    float largest = a.at(indices.back());
-    indices.pop_back();
-    std::vector<float> retVec = lgt_sort_vec(a, indices);
-    std::vector<float> totalArea(retVec.size());
+  PROFILE_FUNCTION;
 
-    std::transform(retVec.begin(), retVec.end(), totalArea.begin(), bind2nd(std::plus<float>(), largest));
-    std::vector<float> iou(inter.size());
-    std::transform(totalArea.begin(), totalArea.end(), inter.begin(), iou.begin(), std::minus<float>());
-    std::transform(inter.begin(), inter.end(), iou.begin(), iou.begin(), std::divides<float>());
+  float largest = a.at(indices.back());
+  indices.pop_back();
+  std::vector<float> retVec = lgt_sort_vec(a, indices);
+  std::vector<float> totalArea(retVec.size());
 
-    return iou;
+  std::transform(retVec.begin(), retVec.end(), totalArea.begin(), bind2nd(std::plus<float>(), largest));
+  std::vector<float> iou(inter.size());
+  std::transform(totalArea.begin(), totalArea.end(), inter.begin(), iou.begin(), std::minus<float>());
+  std::transform(inter.begin(), inter.end(), iou.begin(), iou.begin(), std::divides<float>());
+
+  return iou;
 }
 
 /*
@@ -210,19 +220,21 @@ static std::vector<float> lgt_iou(std::vector<float> const &a, std::vector<float
  */ 
 static std::vector<int> lgt_iou_argsort(std::vector<float> const &a, float threshold)
 {
-    std::vector<int> vArg;
-    uint32_t index = 0;
+  PROFILE_FUNCTION;
 
-    for (auto i : a)
-    {
-        if (a.at(i) <= threshold)
-        {
-            vArg.push_back(index);
-        }
-        index++;
-    }
+  std::vector<int> vArg;
+  uint32_t index = 0;
 
-    return vArg;
+  for (auto i : a)
+  {
+      if (a.at(i) <= threshold)
+      {
+          vArg.push_back(index);
+      }
+      index++;
+  }
+
+  return vArg;
 }
 
 
@@ -233,6 +245,8 @@ static std::vector<int> lgt_iou_argsort(std::vector<float> const &a, float thres
 template <typename Iter, typename Compare>
 static std::vector<int> argsort(Iter begin, Iter end, Compare comp)
 {
+  PROFILE_FUNCTION;
+
 	// Begin Iterator, End Iterator, Comp
 	std::vector<std::pair<int, Iter> > pairList; // Pair Vector
 	std::vector<int> ret;                        // Will hold the indices
@@ -348,75 +362,77 @@ struct TfLiteTensorsToDetectionsCalculatorOptions
 
 static std::vector<float> lgt_decode_box(std::vector<float> raw_boxes, std::vector<Anchor> anchors, const TfLiteTensorsToDetectionsCalculatorOptions& options, uint32_t idx)
 {
-    std::vector<float> box_data(options.num_coords, 0.0);
-        
-    uint32_t box_offset = idx * options.num_coords + options.box_coord_offset;
+  PROFILE_FUNCTION;
 
-    float y_center = raw_boxes[box_offset];
-    float x_center = raw_boxes[box_offset + 1];
-    float h = raw_boxes[box_offset + 2];
-    float w = raw_boxes[box_offset + 3];
+  std::vector<float> box_data(options.num_coords, 0.0);
+      
+  uint32_t box_offset = idx * options.num_coords + options.box_coord_offset;
 
-    if (options.reverse_output_order)
-    {
-        x_center = raw_boxes[box_offset];
-        y_center = raw_boxes[box_offset + 1];
-        w = raw_boxes[box_offset + 2];
-        h = raw_boxes[box_offset + 3];
-    }
+  float y_center = raw_boxes[box_offset];
+  float x_center = raw_boxes[box_offset + 1];
+  float h = raw_boxes[box_offset + 2];
+  float w = raw_boxes[box_offset + 3];
 
-    x_center = x_center / options.x_scale * anchors[idx].w + anchors[idx].x_center;
-    y_center = y_center / options.y_scale * anchors[idx].h + anchors[idx].y_center;
+  if (options.reverse_output_order)
+  {
+      x_center = raw_boxes[box_offset];
+      y_center = raw_boxes[box_offset + 1];
+      w = raw_boxes[box_offset + 2];
+      h = raw_boxes[box_offset + 3];
+  }
 
-    if (options.apply_exponential_on_box_size)
-    {
-        h = exp(h / options.h_scale) * anchors[idx].h;
-        w = exp(w / options.w_scale) * anchors[idx].w;
-    }
-    else
-    {
-        h = h / options.h_scale * anchors[idx].h;
-        w = w / options.w_scale * anchors[idx].w;
-    }
+  x_center = x_center / options.x_scale * anchors[idx].w + anchors[idx].x_center;
+  y_center = y_center / options.y_scale * anchors[idx].h + anchors[idx].y_center;
 
-    float ymin = y_center - h / 2.0;
-    float xmin = x_center - w / 2.0;
-    float ymax = y_center + h / 2.0;
-    float xmax = x_center + w / 2.0;
+  if (options.apply_exponential_on_box_size)
+  {
+      h = exp(h / options.h_scale) * anchors[idx].h;
+      w = exp(w / options.w_scale) * anchors[idx].w;
+  }
+  else
+  {
+      h = h / options.h_scale * anchors[idx].h;
+      w = w / options.w_scale * anchors[idx].w;
+  }
 
-    box_data[0] = ymin;
-    box_data[1] = xmin;
-    box_data[2] = ymax;
-    box_data[3] = xmax;
+  float ymin = y_center - h / 2.0;
+  float xmin = x_center - w / 2.0;
+  float ymax = y_center + h / 2.0;
+  float xmax = x_center + w / 2.0;
 
-    if (options.num_keypoints)
-    {
-        for (uint32_t k = 0; k < options.num_keypoints; k++)
-        {
-            uint32_t offset = idx * options.num_coords + options.keypoint_coord_offset + k * options.num_values_per_keypoint;
+  box_data[0] = ymin;
+  box_data[1] = xmin;
+  box_data[2] = ymax;
+  box_data[3] = xmax;
 
-            float keypoint_y = raw_boxes[offset];
-            float keypoint_x = raw_boxes[offset + 1];
-            if (options.reverse_output_order)
-            {
-                keypoint_x = raw_boxes[offset];
-                keypoint_y = raw_boxes[offset + 1];
-            }
+  if (options.num_keypoints)
+  {
+      for (uint32_t k = 0; k < options.num_keypoints; k++)
+      {
+          uint32_t offset = idx * options.num_coords + options.keypoint_coord_offset + k * options.num_values_per_keypoint;
 
-            box_data[4 + k * options.num_values_per_keypoint] = keypoint_x / options.x_scale * anchors[idx].w + anchors[idx].x_center;
-            box_data[4 + k * options.num_values_per_keypoint  + 1] = keypoint_y / options.y_scale * anchors[idx].h + anchors[idx].y_center;
-        }
-    }
+          float keypoint_y = raw_boxes[offset];
+          float keypoint_x = raw_boxes[offset + 1];
+          if (options.reverse_output_order)
+          {
+              keypoint_x = raw_boxes[offset];
+              keypoint_y = raw_boxes[offset + 1];
+          }
 
-    return box_data;
+          box_data[4 + k * options.num_values_per_keypoint] = keypoint_x / options.x_scale * anchors[idx].w + anchors[idx].x_center;
+          box_data[4 + k * options.num_values_per_keypoint  + 1] = keypoint_y / options.y_scale * anchors[idx].h + anchors[idx].y_center;
+      }
+  }
+
+  return box_data;
 }
 
 
 static Detection lgt_convert_to_detection(float box_ymin, float box_xmin, float box_ymax, float box_xmax, float score, float class_id, bool flip_vertically) 
 {
-    Detection detection = Detection(score, class_id, box_xmin, (flip_vertically ? 1.0 - box_ymax : box_ymin), (box_xmax - box_xmin), (box_ymax - box_ymin));
-
-    return detection;
+  PROFILE_FUNCTION;
+  Detection detection = Detection(score, class_id, box_xmin, (flip_vertically ? 1.0 - box_ymax : box_ymin), (box_xmax - box_xmin), (box_ymax - box_ymin));
+  return detection;
 }
 
 
@@ -424,42 +440,44 @@ static std::vector<Detection> lgt_convert_to_detections(std::vector<float> raw_b
                           std::vector<float> detection_scores, std::vector<float> detection_classes, 
                           const TfLiteTensorsToDetectionsCalculatorOptions& options)
 {
-    std::vector<Detection> output_detections;
+  PROFILE_FUNCTION;
 
-    for (int i = 0; i < options.num_boxes; i++)
-    {
-        if (detection_scores[i] < options.min_score_thresh)
-        {
-            continue;
-        }
-        
-        std::vector<float> box_data = lgt_decode_box(raw_boxes, anchors, options, i);
-        Detection detection = lgt_convert_to_detection(
-                box_data[0], box_data[1],
-                box_data[2], box_data[3],
-                detection_scores[i], detection_classes[i], options.flip_vertically);
-        
-        detection.leftEyeX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EYE * options.num_values_per_keypoint];
-        detection.leftEyeY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EYE * options.num_values_per_keypoint + 1];
+  std::vector<Detection> output_detections;
 
-        detection.rightEyeX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EYE * options.num_values_per_keypoint];
-        detection.rightEyeY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EYE * options.num_values_per_keypoint + 1];
+  for (int i = 0; i < options.num_boxes; i++)
+  {
+      if (detection_scores[i] < options.min_score_thresh)
+      {
+          continue;
+      }
+      
+      std::vector<float> box_data = lgt_decode_box(raw_boxes, anchors, options, i);
+      Detection detection = lgt_convert_to_detection(
+              box_data[0], box_data[1],
+              box_data[2], box_data[3],
+              detection_scores[i], detection_classes[i], options.flip_vertically);
+      
+      detection.leftEyeX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EYE * options.num_values_per_keypoint];
+      detection.leftEyeY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EYE * options.num_values_per_keypoint + 1];
 
-        detection.noseTipX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::NOSE_TIP * options.num_values_per_keypoint];
-        detection.noseTipY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::NOSE_TIP * options.num_values_per_keypoint + 1];
+      detection.rightEyeX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EYE * options.num_values_per_keypoint];
+      detection.rightEyeY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EYE * options.num_values_per_keypoint + 1];
 
-        detection.mouthX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::MOUTH_CENTER * options.num_values_per_keypoint];
-        detection.mouthY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::MOUTH_CENTER * options.num_values_per_keypoint + 1];
+      detection.noseTipX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::NOSE_TIP * options.num_values_per_keypoint];
+      detection.noseTipY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::NOSE_TIP * options.num_values_per_keypoint + 1];
 
-        detection.rightEarX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EAR_TRAGION * options.num_values_per_keypoint];
-        detection.rightEarY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EAR_TRAGION * options.num_values_per_keypoint + 1];
+      detection.mouthX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::MOUTH_CENTER * options.num_values_per_keypoint];
+      detection.mouthY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::MOUTH_CENTER * options.num_values_per_keypoint + 1];
 
-        detection.leftEarX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EAR_TRAGION * options.num_values_per_keypoint];
-        detection.leftEarY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EAR_TRAGION * options.num_values_per_keypoint + 1];
+      detection.rightEarX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EAR_TRAGION * options.num_values_per_keypoint];
+      detection.rightEarY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::RIGHT_EAR_TRAGION * options.num_values_per_keypoint + 1];
 
-        output_detections.push_back(detection);
-    }
-    return output_detections;
+      detection.leftEarX = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EAR_TRAGION * options.num_values_per_keypoint];
+      detection.leftEarY = box_data[options.keypoint_coord_offset + (int)FaceKeyPoint::LEFT_EAR_TRAGION * options.num_values_per_keypoint + 1];
+
+      output_detections.push_back(detection);
+  }
+  return output_detections;
 }
 
 
@@ -469,215 +487,243 @@ static std::vector<Detection> lgt_convert_to_detections(std::vector<float> raw_b
  */ 
 static std::vector<Detection> lgt_process_cpu(std::vector<float> raw_boxes, std::vector<float> raw_scores, std::vector<Anchor> anchors, const TfLiteTensorsToDetectionsCalculatorOptions& options)
 {
-    std::vector<float> detection_scores(options.num_boxes, 0.0);
-    std::vector<float> detection_classes(options.num_boxes, 0.0);
-    std::vector<Detection> output_detections;
+  PROFILE_FUNCTION;
 
-    // Filter classes by scores.
-    for (int i = 0; i < options.num_boxes; i++)
-    {
-        int class_id = -1;
-        float max_score = std::numeric_limits<float>::min();
+  std::vector<float> detection_scores(options.num_boxes, 0.0);
+  std::vector<float> detection_classes(options.num_boxes, 0.0);
+  std::vector<Detection> output_detections;
 
-        // Find the top score for box i.
-        for (int score_idx = 0; score_idx < options.num_classes; score_idx++)
-        {
-            float score = raw_scores[i * options.num_classes + score_idx];
-            if (options.sigmoid_score)
-            {
-                if (options.score_clipping_thresh > 0)
-                {
-                    score = score < -options.score_clipping_thresh ? -options.score_clipping_thresh : score;
-                    score = score > options.score_clipping_thresh ? options.score_clipping_thresh : score;
-                }
-                score = 1.0 / (1.0 + exp(-score));
-            }
-            if (max_score < score)
-            {
-                max_score = score;
-                class_id = score_idx;
-            }
-        }
-        detection_scores[i] = max_score;
-        detection_classes[i] = class_id;
-    }
+  // Filter classes by scores.
+  for (int i = 0; i < options.num_boxes; i++)
+  {
+      int class_id = -1;
+      float max_score = std::numeric_limits<float>::min();
 
-    output_detections = lgt_convert_to_detections(raw_boxes, anchors, detection_scores, 
-                                                  detection_classes, options);
-    return output_detections;
+      // Find the top score for box i.
+      for (int score_idx = 0; score_idx < options.num_classes; score_idx++)
+      {
+          float score = raw_scores[i * options.num_classes + score_idx];
+          if (options.sigmoid_score)
+          {
+              if (options.score_clipping_thresh > 0)
+              {
+                  score = score < -options.score_clipping_thresh ? -options.score_clipping_thresh : score;
+                  score = score > options.score_clipping_thresh ? options.score_clipping_thresh : score;
+              }
+              score = 1.0 / (1.0 + exp(-score));
+          }
+          if (max_score < score)
+          {
+              max_score = score;
+              class_id = score_idx;
+          }
+      }
+      detection_scores[i] = max_score;
+      detection_classes[i] = class_id;
+  }
+
+  output_detections = lgt_convert_to_detections(raw_boxes, anchors, detection_scores, 
+                                                detection_classes, options);
+  return output_detections;
 }
 
 
 static std::vector<Detection> lgt_orig_nms(std::vector<Detection> detections, float threshold)
 {
-    if (detections.size() <= 0)
-    {
-        return std::vector<Detection>();
-    }
+  PROFILE_FUNCTION;
 
-    std::vector<float> x1;
-    std::vector<float> x2;
-    std::vector<float> y1;
-    std::vector<float> y2;
-    std::vector<float> s;
+  if (detections.size() <= 0)
+  {
+      return std::vector<Detection>();
+  }
 
-    for (std::vector<Detection>::iterator ptr = detections.begin(); ptr < detections.end(); ptr++)
-    {
-        x1.push_back(ptr->xmin);
-        x2.push_back(ptr->xmin + ptr->width);
-        y1.push_back(ptr->ymin);
-        y2.push_back(ptr->ymin + ptr->height);
-        s.push_back(ptr->score);
-    }
+  std::vector<float> x1;
+  std::vector<float> x2;
+  std::vector<float> y1;
+  std::vector<float> y2;
+  std::vector<float> s;
+
+  for (std::vector<Detection>::iterator ptr = detections.begin(); ptr < detections.end(); ptr++)
+  {
+      x1.push_back(ptr->xmin);
+      x2.push_back(ptr->xmin + ptr->width);
+      y1.push_back(ptr->ymin);
+      y2.push_back(ptr->ymin + ptr->height);
+      s.push_back(ptr->score);
+  }
+  
+  std::vector<float> X(x1.size());
+  std::vector<float> Y(y1.size());
+  std::vector<float> area(x1.size());
+
+  std::transform(x2.begin(), x2.end(), x1.begin(), X.begin(), std::minus<float>());
+  std::transform(X.begin(), X.end(), X.begin(), bind2nd(std::plus<float>(), 1));
+
+  std::transform(y2.begin(), y2.end(), y1.begin(), Y.begin(), std::minus<float>());
+  std::transform(Y.begin(), Y.end(), Y.begin(), bind2nd(std::plus<float>(), 1));
+
+  std::transform(X.begin(), X.end(), Y.begin(), area.begin(), std::multiplies<float>());
     
-    std::vector<float> X(x1.size());
-    std::vector<float> Y(y1.size());
-    std::vector<float> area(x1.size());
+  std::vector<int> indices = argsort(s.begin(), s.end(), std::less<float>());
 
-    std::transform(x2.begin(), x2.end(), x1.begin(), X.begin(), std::minus<float>());
-    std::transform(X.begin(), X.end(), X.begin(), bind2nd(std::plus<float>(), 1));
+  std::vector<float> pick;
+  while (indices.size() > 0)
+  {
+      std::vector<float> xx1 = lgt_vec_maximum(x1, indices);   
+      std::vector<float> yy1 = lgt_vec_maximum(y1, indices);   
+      std::vector<float> xx2 = lgt_vec_minimum(x2, indices);   
+      std::vector<float> yy2 = lgt_vec_minimum(y2, indices);   
 
-    std::transform(y2.begin(), y2.end(), y1.begin(), Y.begin(), std::minus<float>());
-    std::transform(Y.begin(), Y.end(), Y.begin(), bind2nd(std::plus<float>(), 1));
+      std::vector<float> XX(xx1.size());
+      std::vector<float> YY(yy1.size());
 
-    std::transform(X.begin(), X.end(), Y.begin(), area.begin(), std::multiplies<float>());
-     
-    std::vector<int> indices = argsort(s.begin(), s.end(), std::less<float>());
+      std::transform(xx2.begin(), xx2.end(), xx1.begin(), XX.begin(), std::minus<float>());
+      std::transform(XX.begin(), XX.end(), XX.begin(), bind2nd(std::plus<float>(), 1.0));
 
-    std::vector<float> pick;
-    while (indices.size() > 0)
-    {
-        std::vector<float> xx1 = lgt_vec_maximum(x1, indices);   
-        std::vector<float> yy1 = lgt_vec_maximum(y1, indices);   
-        std::vector<float> xx2 = lgt_vec_minimum(x2, indices);   
-        std::vector<float> yy2 = lgt_vec_minimum(y2, indices);   
+      std::transform(yy2.begin(), yy2.end(), yy1.begin(), YY.begin(), std::minus<float>());
+      std::transform(YY.begin(), YY.end(), YY.begin(), bind2nd(std::plus<float>(), 1.0));
 
-        std::vector<float> XX(xx1.size());
-        std::vector<float> YY(yy1.size());
+      std::vector<float> w = lgt_vec_maximum(XX, std::vector<int>());
+      std::vector<float> h = lgt_vec_maximum(YY, std::vector<int>());
 
-        std::transform(xx2.begin(), xx2.end(), xx1.begin(), XX.begin(), std::minus<float>());
-        std::transform(XX.begin(), XX.end(), XX.begin(), bind2nd(std::plus<float>(), 1.0));
+      std::vector<float> inter(w.size());
+      std::transform(w.begin(), w.end(), h.begin(), inter.begin(), std::multiplies<float>());
 
-        std::transform(yy2.begin(), yy2.end(), yy1.begin(), YY.begin(), std::minus<float>());
-        std::transform(YY.begin(), YY.end(), YY.begin(), bind2nd(std::plus<float>(), 1.0));
+      std::vector<float> iou = lgt_iou(area, inter, indices);
+      pick.push_back(indices.back());
 
-        std::vector<float> w = lgt_vec_maximum(XX, std::vector<int>());
-        std::vector<float> h = lgt_vec_maximum(YY, std::vector<int>());
+      indices = lgt_iou_argsort(iou, threshold);
+  }
 
-        std::vector<float> inter(w.size());
-        std::transform(w.begin(), w.end(), h.begin(), inter.begin(), std::multiplies<float>());
+  std::vector<Detection> retDetections;
 
-        std::vector<float> iou = lgt_iou(area, inter, indices);
-        pick.push_back(indices.back());
-
-        indices = lgt_iou_argsort(iou, threshold);
-    }
-
-    std::vector<Detection> retDetections;
-
-    for (int i = 0; i < pick.size(); i++)
-    {
-        retDetections.push_back(detections.at(pick[i]));
-    }
-    return retDetections;
-
+  for (int i = 0; i < pick.size(); i++)
+  {
+      retDetections.push_back(detections.at(pick[i]));
+  }
+  return retDetections;
 }
 
 static std::vector<Anchor> lgt_gen_anchors(const SsdAnchorsCalculatorOptions& options)
 {
-    std::vector<Anchor> anchors;
+  PROFILE_FUNCTION;
 
-    // Verify the options.
-    if (options.strides.size() != options.num_layers)
-    {
-      throw std::runtime_error("strides_size and num_layers must be equal.");
-    }
+  std::vector<Anchor> anchors;
 
-    uint32_t layer_id = 0;
-    while (layer_id < options.strides.size())
-    {
-        std::vector<float> anchor_height;
-        std::vector<float> anchor_width;
-        std::vector<float> aspect_ratios;
-        std::vector<float> scales;
+  // Verify the options.
+  if (options.strides.size() != options.num_layers)
+  {
+    throw std::runtime_error("strides_size and num_layers must be equal.");
+  }
 
-        // For same strides, we merge the anchors in the same order.
-        uint32_t last_same_stride_layer = layer_id;
-        while (last_same_stride_layer < options.strides.size() && options.strides[last_same_stride_layer] == options.strides[layer_id])
-        {
-            float scale = options.min_scale + (options.max_scale - options.min_scale) * 1.0 * last_same_stride_layer / (options.strides.size() - 1.0);
-            if (last_same_stride_layer == 0 && options.reduce_boxes_in_lowest_layer)
-            {
-                // For first layer, it can be specified to use predefined anchors.
-                aspect_ratios.push_back(1.0);
-                aspect_ratios.push_back(2.0);
-                aspect_ratios.push_back(0.5);
-                scales.push_back(0.1);
-                scales.push_back(scale);
-                scales.push_back(scale);
-            }
-            else
-            {
-                for (size_t aspect_ratio_id = 0; aspect_ratio_id < options.aspect_ratios.size(); aspect_ratio_id++)
-                {
-                    aspect_ratios.push_back(options.aspect_ratios[aspect_ratio_id]);
-                    scales.push_back(scale);
-                }
+  uint32_t layer_id = 0;
+  while (layer_id < options.strides.size())
+  {
+      std::vector<float> anchor_height;
+      std::vector<float> anchor_width;
+      std::vector<float> aspect_ratios;
+      std::vector<float> scales;
 
-                if (options.interpolated_scale_aspect_ratio > 0.0)
-                {
-                    float scale_next = (last_same_stride_layer == options.strides.size() - 1) ? 1.0 : (options.min_scale + (options.max_scale - options.min_scale) * 1.0 * (last_same_stride_layer + 1) / (options.strides.size() - 1.0));
-                    scales.push_back(sqrt(scale * scale_next));
-                    aspect_ratios.push_back(options.interpolated_scale_aspect_ratio);
-                }
-            }
-            last_same_stride_layer += 1;
-        }
-        
-        for (size_t i = 0; i < aspect_ratios.size(); i++)
-        {
-            float ratio_sqrts = sqrt(aspect_ratios[i]);
-            anchor_height.push_back(scales[i] / ratio_sqrts);
-            anchor_width.push_back(scales[i] * ratio_sqrts);
-        }
+      // For same strides, we merge the anchors in the same order.
+      uint32_t last_same_stride_layer = layer_id;
+      while (last_same_stride_layer < options.strides.size() && options.strides[last_same_stride_layer] == options.strides[layer_id])
+      {
+          float scale = options.min_scale + (options.max_scale - options.min_scale) * 1.0 * last_same_stride_layer / (options.strides.size() - 1.0);
+          if (last_same_stride_layer == 0 && options.reduce_boxes_in_lowest_layer)
+          {
+              // For first layer, it can be specified to use predefined anchors.
+              aspect_ratios.push_back(1.0);
+              aspect_ratios.push_back(2.0);
+              aspect_ratios.push_back(0.5);
+              scales.push_back(0.1);
+              scales.push_back(scale);
+              scales.push_back(scale);
+          }
+          else
+          {
+              for (size_t aspect_ratio_id = 0; aspect_ratio_id < options.aspect_ratios.size(); aspect_ratio_id++)
+              {
+                  aspect_ratios.push_back(options.aspect_ratios[aspect_ratio_id]);
+                  scales.push_back(scale);
+              }
 
-        uint32_t stride = options.strides[layer_id];
-        uint32_t feature_map_height = ceil(1.0 * options.input_size_height / stride);
-        uint32_t feature_map_width = ceil(1.0 * options.input_size_width / stride);
+              if (options.interpolated_scale_aspect_ratio > 0.0)
+              {
+                  float scale_next = (last_same_stride_layer == options.strides.size() - 1) ? 1.0 : (options.min_scale + (options.max_scale - options.min_scale) * 1.0 * (last_same_stride_layer + 1) / (options.strides.size() - 1.0));
+                  scales.push_back(sqrt(scale * scale_next));
+                  aspect_ratios.push_back(options.interpolated_scale_aspect_ratio);
+              }
+          }
+          last_same_stride_layer += 1;
+      }
+      
+      for (size_t i = 0; i < aspect_ratios.size(); i++)
+      {
+          float ratio_sqrts = sqrt(aspect_ratios[i]);
+          anchor_height.push_back(scales[i] / ratio_sqrts);
+          anchor_width.push_back(scales[i] * ratio_sqrts);
+      }
 
-        for (size_t y = 0; y < feature_map_height; y++)
-        {
-            for (size_t x = 0; x < feature_map_width; x++)
-            {
-                for (uint32_t anchor_id = 0; anchor_id < anchor_height.size(); anchor_id++)
-                {
-                    float x_center = (x + options.anchor_offset_x) * 1.0 / feature_map_width;
-                    float y_center = (y + options.anchor_offset_y) * 1.0 / feature_map_height;
-                    float w = 0;
-                    float h = 0;
-                    if (options.fixed_anchor_size)
-                    {
-                        w = 1.0;
-                        h = 1.0;
-                    }
-                    else
-                    {
-                        w = anchor_width[anchor_id];
-                        h = anchor_height[anchor_id];
-                    }
-                    Anchor new_anchor;
-                    new_anchor.x_center = x_center;
-                    new_anchor.y_center = y_center;
-                    new_anchor.h = h;
-                    new_anchor.w = w;
-                    anchors.push_back(new_anchor);
-                }
-            }
-        }
-        layer_id = last_same_stride_layer;
-    }
-    return anchors;
+      uint32_t stride = options.strides[layer_id];
+      uint32_t feature_map_height = ceil(1.0 * options.input_size_height / stride);
+      uint32_t feature_map_width = ceil(1.0 * options.input_size_width / stride);
+
+      for (size_t y = 0; y < feature_map_height; y++)
+      {
+          for (size_t x = 0; x < feature_map_width; x++)
+          {
+              for (uint32_t anchor_id = 0; anchor_id < anchor_height.size(); anchor_id++)
+              {
+                  float x_center = (x + options.anchor_offset_x) * 1.0 / feature_map_width;
+                  float y_center = (y + options.anchor_offset_y) * 1.0 / feature_map_height;
+                  float w = 0;
+                  float h = 0;
+                  if (options.fixed_anchor_size)
+                  {
+                      w = 1.0;
+                      h = 1.0;
+                  }
+                  else
+                  {
+                      w = anchor_width[anchor_id];
+                      h = anchor_height[anchor_id];
+                  }
+                  Anchor new_anchor;
+                  new_anchor.x_center = x_center;
+                  new_anchor.y_center = y_center;
+                  new_anchor.h = h;
+                  new_anchor.w = w;
+                  anchors.push_back(new_anchor);
+              }
+          }
+      }
+      layer_id = last_same_stride_layer;
+  }
+  return anchors;
 }
+
+  template <typename Color> 
+  void loadImage(const Image<Color>& image)
+  {
+    PROFILE_FUNCTION;
+
+    if (image.width() != (size_t)modelConfig_.options.input_size_width && 
+        image.height() != (size_t)modelConfig_.options.input_size_height)
+    {
+      throw std::runtime_error("Input image is wrong size!");
+    }
+
+    // Copy the scaled image into input tensor, converting to its weird floating point format
+    int input = interpreter_->inputs()[0];
+    TfLiteTensor* input_tensor = interpreter_->tensor(input);
+    RGB3f<-1.0f, 1.0f>* dst = (RGB3f<-1.0f, 1.0f>*)input_tensor->data.f;
+    const Color* src = image.pixel();
+    size_t size = (size_t)modelConfig_.options.input_size_width * (size_t)modelConfig_.options.input_size_height;
+    for (size_t i = 0; i < size; ++i)
+    {
+      dst[i] = src[i];
+    }
+  }
 
 public:
   struct SSDOptions
@@ -767,29 +813,17 @@ public:
   }
 
   template <typename Color> 
-  std::vector<Detection> Detect(const Image<Color>& image)
+  std::vector<Detection> detect(const Image<Color>& image)
   {
     PROFILE_FUNCTION;
-
-    if (image.width() != (size_t)modelConfig_.options.input_size_width && 
-        image.height() != (size_t)modelConfig_.options.input_size_height)
-    {
-      throw std::runtime_error("Input image is wrong size!");
-    }
-
-    // Copy the scaled image into input tensor, converting to its weird floating point format
-    int input = interpreter_->inputs()[0];
-    TfLiteTensor* input_tensor = interpreter_->tensor(input);
-    RGB3f<-1.0f, 1.0f>* dst = (RGB3f<-1.0f, 1.0f>*)input_tensor->data.f;
-    const Color* src = image.pixel();
-    size_t size = (size_t)modelConfig_.options.input_size_width * (size_t)modelConfig_.options.input_size_height;
-    for (size_t i = 0; i < size; ++i)
-    {
-      dst[i] = src[i];
-    }
+    
+    loadImage(image);
 
     // Run Inference
-    if (interpreter_->Invoke() != kTfLiteOk) throw std::runtime_error("Invoke interpreter failed!");
+    {
+      PROFILE(inference);
+      if (interpreter_->Invoke() != kTfLiteOk) throw std::runtime_error("Invoke interpreter failed!");
+    }
 
     // Read output buffers
     // 1. Regressor
