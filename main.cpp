@@ -10,7 +10,7 @@
 #include "Draw.hpp"
 #include "ImageIO.hpp"
 #include "V4LCamera.hpp"
-#include "RemoteEyes.hpp"
+#include "AnimatedEyes.hpp"
 #include "FaceDetector.hpp"
 #include "FPSCounter.hpp"
 #include "FunctionTimer.hpp"
@@ -93,8 +93,8 @@ int main(int argc, char *argv[])
     Image<RGB24> rawImage, scaledImage, detectImage;
     std::cout << "Capturing at " << cam.width() << " x " << cam.height() << "\n";
 
-    FaceDetector detector(FaceDetector::FrontModel);
-    RemoteEyes eyes;
+    AnimatedEyes eyes("/dev/ttyACM0");
+    FaceDetector detector(FaceDetector::BackModel);
     FPSCounter fpsCounter;
     
     while (true)
@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
         auto results = detector.detect(detectImage);
         if (results.size() > 0)
         {
-          eyes.look((results[0].leftEyeX - 0.5f) * -140.0f,
-                    (results[0].leftEyeY - 0.5f) * -100.0f);
+          eyes.registerFace((results[0].leftEyeX - 0.5f) * -120.0f,
+                    (results[0].leftEyeY - 0.5f) * -120.0f);
         }
 
         #ifdef DEBUG_SAVE_IMAGE
@@ -134,6 +134,7 @@ int main(int argc, char *argv[])
         }
         #endif
       }
+
       captureThread.join();
       std::swap(scaledImage, detectImage);
       
